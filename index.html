@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nuvicon Ops</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#ECEAE4;--card:#fff;--ink:#14191c;--mut:#667078;--line:#d6d3cb;--acc:#F2B705;--ok:#2f7d4f;--warn:#a85f00;--bad:#b3392f;--dark:#14191c}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 system-ui,-apple-system,sans-serif;padding-bottom:76px}
+main{max-width:720px;margin:0 auto;padding:0 14px}
+.top{background:var(--dark);color:#fff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:5}
+.top b{letter-spacing:.12em;font-size:15px}.top small{color:var(--acc);margin-left:6px}
+.top button{background:transparent;border:1px solid #444;color:#ddd;border-radius:6px;padding:5px 10px;font-size:13px}
+h1{font-size:22px;margin:16px 0 8px;letter-spacing:.04em;text-transform:uppercase}
+.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:8px}
+.flex{display:flex;justify-content:space-between;align-items:center;gap:8px}
+small,.mut{color:var(--mut)}
+.pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;background:#e4e2db}
+.pill.placed{background:#e4e2db}.pill.staged{background:var(--acc)}.pill.picked_up,.pill.in_transit{background:#cfe6d8;color:#1f5a38}.pill.delivered{background:#bfe0cc;color:#1f5a38}.pill.cancelled,.pill.failed{background:#f3d3cf;color:var(--bad)}.pill.paid{background:#cfe6d8;color:#1f5a38}.pill.low{background:#f8e3b5;color:var(--warn)}.pill.out{background:#f3d3cf;color:var(--bad)}.pill.ok{background:#cfe6d8;color:#1f5a38}
+.btn{border:0;border-radius:6px;padding:9px 14px;font-weight:700;font-size:14px;background:var(--acc);color:var(--ink)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line)}.btn.bad{background:transparent;border:1.5px solid var(--bad);color:var(--bad)}.btn:disabled{opacity:.4}
+.btn.sm{padding:6px 10px;font-size:13px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 0}
+.chip{flex:none;padding:6px 12px;border:1.5px solid var(--line);border-radius:99px;background:transparent;font-size:13px;font-weight:600;color:var(--ink)}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+input,select{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--ink);margin-bottom:8px}
+nav{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;padding:14px 0;border:0;background:transparent;color:var(--mut);font-weight:600;font-size:14px}
+nav button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--acc)}
+.items{margin:8px 0;padding:8px;background:#f6f5f1;border-radius:6px;font-size:13px}
+.err{color:var(--bad);font-size:13px;margin:6px 0}
+.stat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat div{background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px}.stat b{display:block;font-size:20px}
+.empty{text-align:center;color:var(--mut);padding:40px 10px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;background:var(--dark);color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:9}
+</style></head><body>
+<div id="app"></div><nav id="nav"></nav><div id="toast"></div>
+<script>
+var U="https://lievssgahoruyviciylz.supabase.co",K="sb_publishable_6OoFSHYl0fFS7gqNTs5jwA_DZs5K4Jn";
+var sb=window.supabase.createClient(U,K);
+var FLOW=["placed","staged","picked_up","in_transit","delivered"],LBL={placed:"Placed",staged:"Staged",picked_up:"Picked up",in_transit:"In transit",delivered:"Delivered",cancelled:"Cancelled"};
+var S={user:null,role:null,view:"orders",boot:true,step:"phone",phone:"",otp:"",err:"",busy:false,orders:[],f:"active",inv:[],q:"",open:{},loadErr:""};
+function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
+function fmt(n){return "₹"+Math.round(Number(n)).toLocaleString("en-IN")}
+function toast(m){var t=document.getElementById("toast");t.innerHTML='<div class="toast">'+esc(m)+'</div>';setTimeout(function(){t.innerHTML=""},2500)}
+function dt(s){return new Date(s).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}
+async function audit(a,e,id,d){try{await sb.rpc("log_audit",{p_action:a,p_entity:e,p_id:String(id),p_details:d})}catch(x){}}
+async function whoami(){
+ var r=await sb.auth.getSession();
+ if(!r.data.session){S.user=null;S.role=null;S.boot=false;return render()}
+ S.user=r.data.session.user;
+ var p=await sb.from("profiles").select("role").eq("id",S.user.id).maybeSingle();
+ S.role=p.data?p.data.role:"customer";S.boot=false;
+ if(S.role!=="customer"){await loadAll()}
+ render()}
+async function loadOrders(){
+ var r=await sb.from("orders").select("id,order_no,total,subtotal,gst_total,status,pay_status,pay_method,address,created_at,profiles(phone,full_name),zones(name),order_items(product_name,variant_label,qty,unit_price)").order("created_at",{ascending:false}).limit(200);
+ if(r.error){S.loadErr=r.error.message}else{S.orders=r.data;S.loadErr=""}}
+async function loadInv(){
+ var r=await sb.from("variants").select("id,label,price,active,product_id,products(brand,name,gst_percent,category),inventory(total,reserved)").order("product_id").order("id");
+ if(r.error){S.loadErr=r.error.message}else{S.inv=r.data.map(function(v){v.inv=Array.isArray(v.inventory)?v.inventory[0]:v.inventory;return v})}}
+async function loadAll(){await Promise.all([loadOrders(),loadInv()])}
+function ordersV(){
+ var act=S.orders.filter(function(o){return o.status!=="delivered"&&o.status!=="cancelled"});
+ var today=new Date().toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"});
+ var td=S.orders.filter(function(o){return new Date(o.created_at).toLocaleDateString("en-CA",{timeZone:"Asia/Kolkata"})===today&&o.status!=="cancelled"});
+ var rev=td.reduce(function(a,o){return a+Number(o.total)},0);
+ var fl=["active","all"].concat(FLOW).concat(["cancelled"]);
+ var list=S.orders.filter(function(o){return S.f==="all"||(S.f==="active"?act.indexOf(o)>-1:o.status===S.f)});
+ return '<h1>Orders</h1><div class="stat"><div><small>Today</small><b>'+td.length+'</b></div><div><small>Revenue</small><b>'+fmt(rev)+'</b></div><div><small>Active</small><b>'+act.length+'</b></div></div>'+
+ '<div class="chips">'+fl.map(function(f){return '<button class="chip'+(S.f===f?' on':'')+'" data-a="f" data-id="'+f+'">'+esc(f==="active"?"Active":f==="all"?"All":LBL[f])+'</button>'}).join("")+'</div>'+
+ (S.loadErr?'<div class="err">'+esc(S.loadErr)+'</div>':'')+
+ (list.length?list.map(orderCard).join(""):'<div class="empty">No orders here.</div>')}
+function orderCard(o){
+ var i=FLOW.indexOf(o.status),nx=i>-1&&i<4?FLOW[i+1]:null,op=S.open[o.id];
+ var c=o.profiles||{};
+ return '<div class="card"><div class="flex" data-a="tog" data-id="'+o.id+'" style="cursor:pointer"><div><b>#'+esc(o.order_no)+'</b> <span class="pill '+o.status+'">'+LBL[o.status]+'</span><br><small>'+esc(c.full_name||c.phone||"Customer")+', '+esc(o.zones&&o.zones.name)+', '+dt(o.created_at)+'</small></div><b>'+fmt(o.total)+'</b></div>'+
+ (op?'<div class="items">'+o.order_items.map(function(l){return esc(l.qty)+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+') '+fmt(l.unit_price*l.qty)}).join("<br>")+'<br><small>Subtotal '+fmt(o.subtotal)+' + GST '+fmt(o.gst_total)+'</small></div>'+
+ '<div><small>Phone: <a href="tel:+'+esc(c.phone)+'">'+esc(c.phone)+'</a><br>Address: '+esc(o.address||"-")+'<br>Payment: '+esc(o.pay_method==="on_delivery"?"On delivery":"Online")+', '+esc(o.pay_status)+'</small></div>':'')+
+ (nx||(o.status!=="delivered"&&o.status!=="cancelled")?'<div class="flex" style="margin-top:10px">'+(nx?'<button class="btn" data-a="st" data-id="'+o.id+'" data-s="'+nx+'">Mark '+LBL[nx]+'</button>':'<span></span>')+(o.status!=="delivered"&&o.status!=="cancelled"?'<button class="btn bad sm" data-a="st" data-id="'+o.id+'" data-s="cancelled">Cancel</button>':'')+'</div>':'')+'</div>'}
+function stk(v){var a=v.inv?v.inv.total-v.inv.reserved:0;return a<1?["out","Out"]:a<=20?["low","Low"]:["ok","OK"]}
+function stockV(){
+ var s=S.q.toLowerCase(),vs=S.inv.filter(function(v){return (v.products.brand+" "+v.products.name+" "+v.label).toLowerCase().indexOf(s)>-1});
+ var low=S.inv.filter(function(v){var a=v.inv?v.inv.total-v.inv.reserved:0;return a<=20}).length;
+ return '<h1>Inventory</h1><small>'+S.inv.length+' variants, '+low+' low or out</small><input id="q" placeholder="Search product or size" value="'+esc(S.q)+'" style="margin-top:8px">'+
+ (vs.length?vs.map(function(v){var t=stk(v),i=v.inv||{total:0,reserved:0};
+  return '<div class="card flex"><div><b>'+esc(v.products.brand+" "+v.products.name)+'</b><br><small>'+esc(v.label)+'</small><br><span class="pill '+t[0]+'">'+t[1]+'</span> <small>Available <b>'+(i.total-i.reserved)+'</b>, total '+i.total+', reserved '+i.reserved+'</small></div><button class="btn sm" data-a="recv" data-id="'+v.id+'">+ Receive</button></div>'}).join(""):'<div class="empty">Nothing matches.</div>')}
+function catV(){
+ var s=S.q.toLowerCase(),vs=S.inv.filter(function(v){return (v.products.brand+" "+v.products.name+" "+v.label).toLowerCase().indexOf(s)>-1});
+ return '<h1>Catalog</h1><input id="q" placeholder="Search product or size" value="'+esc(S.q)+'">'+
+ vs.map(function(v){return '<div class="card flex"><div><b>'+esc(v.products.brand+" "+v.products.name)+'</b><br><small>'+esc(v.label)+', GST '+Number(v.products.gst_percent)+'%</small><br><b>'+fmt(v.price)+'</b> '+(v.active?'':'<span class="pill out">Hidden</span>')+'</div><div><button class="btn sm" data-a="price" data-id="'+v.id+'">Price</button> <button class="btn ghost sm" data-a="vis" data-id="'+v.id+'">'+(v.active?'Hide':'Show')+'</button></div></div>'}).join("")}
+function loginV(){
+ return '<main><h1 style="margin-top:60px">Nuvicon Ops</h1><p class="mut">Staff login</p>'+
+ (S.step==="phone"?'<input id="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="10-digit mobile number" value="'+esc(S.phone)+'"><button class="btn" data-a="send"'+(S.busy?' disabled':'')+'>Send code</button>':
+ '<input id="otp" type="tel" inputmode="numeric" maxlength="6" placeholder="6-digit code" value="'+esc(S.otp)+'"><button class="btn" data-a="verify"'+(S.busy?' disabled':'')+'>Verify</button> <button class="btn ghost" data-a="back">Change number</button>')+
+ (S.err?'<div class="err">'+esc(S.err)+'</div>':'')+'</main>'}
+function render(){
+ var a=document.getElementById("app"),n=document.getElementById("nav");
+ if(S.boot){a.innerHTML='<div class="empty">Loading…</div>';n.innerHTML="";return}
+ if(!S.user){a.innerHTML=loginV();n.innerHTML="";return}
+ if(S.role==="customer"||!S.role){a.innerHTML='<main><h1 style="margin-top:60px">No access</h1><p class="mut">This number is not a staff account. Ask an admin to give you the staff role.</p><button class="btn ghost" data-a="out">Log out</button></main>';n.innerHTML="";return}
+ a.innerHTML='<div class="top"><div><b>NUVICON</b><small>OPS</small></div><div><small style="color:#aaa">'+esc(S.role)+'</small> <button data-a="out">Log out</button></div></div><main>'+(S.view==="orders"?ordersV():S.view==="stock"?stockV():catV())+'</main>';
+ n.innerHTML=[["orders","Orders"],["stock","Inventory"],["catalog","Catalog"]].map(function(t){return '<button class="'+(S.view===t[0]?'on':'')+'" data-a="go" data-id="'+t[0]+'">'+t[1]+'</button>'}).join("")}
+document.addEventListener("click",async function(e){
+ var b=e.target.closest("[data-a]");if(!b||b.disabled)return;
+ var a=b.dataset.a,id=b.dataset.id,y=window.scrollY;S.err="";
+ if(a==="go"){S.view=id;S.q=""}
+ else if(a==="f")S.f=id;
+ else if(a==="tog")S.open[id]=!S.open[id];
+ else if(a==="back"){S.step="phone";S.otp=""}
+ else if(a==="out"){await sb.auth.signOut();S.user=null;S.role=null}
+ else if(a==="send"){
+  if(!/^[6-9][0-9]{9}$/.test(S.phone))S.err="Enter a valid 10-digit number.";
+  else{S.busy=true;render();var r=await sb.auth.signInWithOtp({phone:"+91"+S.phone});S.busy=false;if(r.error)S.err=r.error.message;else S.step="otp"}}
+ else if(a==="verify"){
+  S.busy=true;render();var r2=await sb.auth.verifyOtp({phone:"+91"+S.phone,token:S.otp,type:"sms"});S.busy=false;
+  if(r2.error)S.err=r2.error.message;else{S.step="phone";S.otp="";S.boot=true;render();return whoami()}}
+ else if(a==="st"){
+  var s=b.dataset.s;
+  if(s==="cancelled"&&!confirm("Cancel this order? Reserved stock will be released."))return;
+  b.disabled=true;var r3=await sb.rpc("set_order_status",{p_order:+id,p_status:s});
+  if(r3.error){alert(r3.error.message)}else{toast("Order updated")}
+  await loadAll()}
+ else if(a==="recv"){
+  var v=S.inv.find(function(x){return x.id==id}),q=prompt("Quantity received for "+v.products.name+" ("+v.label+")");
+  q=parseInt(q,10);
+  if(q>0){var tot=(v.inv?v.inv.total:0)+q;
+   var r4=await sb.from("inventory").upsert({variant_id:+id,total:tot,last_received:new Date().toISOString().slice(0,10)});
+   if(r4.error)alert(r4.error.message);else{await audit("stock_received","inventory",id,{qty:q,total:tot});toast("Stock updated");await loadInv()}}}
+ else if(a==="price"){
+  var v2=S.inv.find(function(x){return x.id==id}),p=prompt("New price for "+v2.products.name+" ("+v2.label+"), before GST",v2.price);
+  p=parseFloat(p);
+  if(p>=0){var r5=await sb.from("variants").update({price:p}).eq("id",id);
+   if(r5.error)alert(r5.error.message);else{await audit("price_change","variants",id,{from:v2.price,to:p});toast("Price updated");await loadInv()}}}
+ else if(a==="vis"){
+  var v3=S.inv.find(function(x){return x.id==id});
+  var r6=await sb.from("variants").update({active:!v3.active}).eq("id",id);
+  if(r6.error)alert(r6.error.message);else{await audit("visibility","variants",id,{active:!v3.active});await loadInv()}}
+ render();window.scrollTo(0,y)});
+document.addEventListener("input",function(e){
+ var i=e.target.id;
+ if(i==="phone")S.phone=e.target.value.replace(/\D/g,"");
+ else if(i==="otp")S.otp=e.target.value.replace(/\D/g,"");
+ else if(i==="q"){S.q=e.target.value;var pos=e.target.selectionStart;render();var el=document.getElementById("q");if(el){el.focus();el.setSelectionRange(pos,pos)}}});
+setInterval(function(){if(S.user&&S.role&&S.role!=="customer"&&!document.hidden){loadOrders().then(render)}},20000);
+render();whoami();
+</script></body></html>
