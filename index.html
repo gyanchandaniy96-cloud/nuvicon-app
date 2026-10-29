@@ -58,7 +58,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={prods:[],V:{},zones:[],hours:{},force:false,city:"Pusad",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"Pusad",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){return "₹"+Math.round(Number(n)).toLocaleString("en-IN")}
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
@@ -77,7 +77,7 @@ async function load(){
    sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
-   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km"])]);
+   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id"])]);
   for(var i=0;i<a.length;i++)if(a[i].error)throw a[i].error;
   S.prods=a[0].data;S.V={};
   S.prods.forEach(function(p){
@@ -85,14 +85,16 @@ async function load(){
     var inv=Array.isArray(v.inventory)?v.inventory[0]:v.inventory;
     v.avail=inv?inv.total-inv.reserved:0;S.V[v.id]={p:p,v:v}})});
   S.zones=a[1].data;S.hours={};a[2].data.forEach(function(h){S.hours[h.day]=h});
-  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0});
+  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
   S.loaded=true;S.loadErr="";
  }catch(e){S.loadErr=(e&&e.message)||String(e)}
  render()}
 async function loadOrders(){
  if(!S.user)return;
- var r=await sb.from("orders").select("id,order_no,total,status,pay_status,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});
- if(!r.error){S.orders=r.data;if(S.view==="orders")render()}}
+ var r=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});
+ var cr=await sb.rpc("my_credit");
+ if(!cr.error)S.cr=(cr.data&&cr.data.enabled)?cr.data:null;
+ if(!r.error){S.orders=r.data;if(S.view==="orders"||S.view==="cart")render()}}
 
 var MP={};
 function geoMode(){return !!(S.gm.key&&S.gm.godown)}
@@ -101,7 +103,7 @@ var gmP=null;
 function loadMaps(){
  if(window.google&&google.maps&&google.maps.Map)return Promise.resolve();
  if(gmP)return gmP;
- gmP=new Promise(function(res,rej){window.__gmReady=res;var t=document.createElement("script");t.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(S.gm.key)+"&callback=__gmReady&v=weekly";t.onerror=function(){gmP=null;rej(new Error("Map load nahi hua"))};document.head.appendChild(t)});
+ gmP=new Promise(function(res,rej){window.__gmReady=res;var t=document.createElement("script");t.src="https://maps.googleapis.com/maps/api/js?key="+encodeURIComponent(S.gm.key)+"&callback=__gmReady&v=weekly";t.onerror=function(){gmP=null;rej(new Error("Could not load the map"))};document.head.appendChild(t)});
  return gmP}
 async function roadKm(a,b){
  try{var r=await fetch("https://routes.googleapis.com/directions/v2:computeRoutes",{method:"POST",headers:{"Content-Type":"application/json","X-Goog-Api-Key":S.gm.key,"X-Goog-FieldMask":"routes.distanceMeters"},body:JSON.stringify({origin:{location:{latLng:{latitude:a.lat,longitude:a.lng}}},destination:{location:{latLng:{latitude:b.lat,longitude:b.lng}}},travelMode:"DRIVE"})});
@@ -125,16 +127,16 @@ async function setLoc(lat,lng){
 function locBlock(){
  var l=S.loc,rad=S.gm.radius,far=l&&rad&&l.km>rad;
  return '<div class="row" style="display:block"><b>Delivery location</b>'+
- (l?'<br><small>'+esc(l.text)+'</small><br><b>Godown se lagbhag '+l.km+' km</b>'+(far?'<div class="err">Hum '+rad+' km tak hi deliver karte hain.</div>':''):'<br><small>Apni location use karo ya map pe pin lagao.</small>')+
+ (l?'<br><small>'+esc(l.text)+'</small><br><b>About '+l.km+' km from our godown</b>'+(far?'<div class="err">We deliver up to '+rad+' km only.</div>':''):'<br><small>Use your current location or pick a point on the map.</small>')+
  (S.locBusy?'<br><small>Location dekh raha hoon…</small>':'')+
- '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" style="flex:1" data-a="mylocation">Meri location</button><button class="btn" style="flex:1" data-a="openmap">Map pe chuno</button></div>'+
+ '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" style="flex:1" data-a="mylocation">My location</button><button class="btn" style="flex:1" data-a="openmap">Pick on map</button></div>'+
  '<input class="sel" id="area" placeholder="Area / mohalla" value="'+esc(S.area)+'" style="margin-top:8px"></div>'}
 async function openMap(){
  try{await loadMaps()}catch(e){S.err=e.message;render();return}
  var gd=S.gm.godown,c=S.loc?{lat:S.loc.lat,lng:S.loc.lng}:{lat:gd.lat,lng:gd.lng};
  var o=document.getElementById("mapov");if(!o){o=document.createElement("div");o.id="mapov";document.body.appendChild(o)}
  o.style.cssText="position:fixed;left:0;top:0;right:0;bottom:0;background:#fff;z-index:50;display:flex;flex-direction:column";
- o.innerHTML='<div style="padding:10px;display:flex;gap:8px"><input id="msq" placeholder="Area ya address search karo" style="flex:1;padding:10px;border:1.5px solid #d6d3cb;border-radius:6px;font:inherit"><button class="btn" data-a="mapsearch">Search</button></div><div id="mapc" style="flex:1"></div><div style="padding:10px"><small id="mapt">Pin ko khiskao ya map pe tap karo</small><div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" data-a="mapx" style="flex:1">Wapas</button><button class="btn" data-a="mapok" style="flex:2">Yahin deliver karo</button></div></div>';
+ o.innerHTML='<div style="padding:10px;display:flex;gap:8px"><input id="msq" placeholder="Search area or address" style="flex:1;padding:10px;border:1.5px solid #d6d3cb;border-radius:6px;font:inherit"><button class="btn" data-a="mapsearch">Search</button></div><div id="mapc" style="flex:1"></div><div style="padding:10px"><small id="mapt">Drag the pin or tap on the map</small><div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" data-a="mapx" style="flex:1">Back</button><button class="btn" data-a="mapok" style="flex:2">Deliver here</button></div></div>';
  MP.map=new google.maps.Map(document.getElementById("mapc"),{center:c,zoom:16,streetViewControl:false,mapTypeControl:false,fullscreenControl:false});
  MP.mk=new google.maps.Marker({position:c,map:MP.map,draggable:true});MP.pos=c;
  var mv=function(p){MP.pos={lat:p.lat(),lng:p.lng()};MP.mk.setPosition(p);revGeo(MP.pos.lat,MP.pos.lng).then(function(g){var t=document.getElementById("mapt");if(t)t.textContent=g.text})};
@@ -172,9 +174,42 @@ function cartV(){
  '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
- (S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
- '<button class="btn big" data-a="order"'+(o&&!S.busy?'':' disabled')+'>'+(!o?'Store is closed':S.busy?'Placing order…':S.user?'Place order':'Log in to place order')+'</button>'+
- '<p class="note">Payment is on delivery for now. The Godown adds the delivery fee when it confirms your order. Prices are sample prices.</p>'}
+ payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
+ '<button class="btn big" data-a="order"'+(o&&!S.busy?'':' disabled')+'>'+(!o?'Store is closed':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
+ '<p class="note">'+(S.onl&&S.rzk?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'Delivery charges may be added when your order is confirmed.</p>'}
+function payM(){return S.pay==="credit"&&S.cr?"credit":S.onl&&S.rzk&&S.pay==="online"?"online":"on_delivery"}
+function payOpt(){
+ var onl=S.onl&&S.rzk;
+ if(!onl&&!S.cr)return '';
+ var tot=sums().t,okc=S.cr&&tot<=Number(S.cr.available);
+ var crOpt=S.cr?'<label style="display:block;padding:6px 0;'+(okc?'':'opacity:.55')+'"><input type="radio" name="pay" data-a="payopt" data-id="credit"'+(S.pay==="credit"?' checked':'')+(okc?'':' disabled')+' style="width:auto"> Credit <small>Available limit '+fmt(S.cr.available)+(okc?'':' (not enough for this order)')+'</small></label>':'';
+ var onOpt=onl?'<label style="display:block;padding:6px 0"><input type="radio" name="pay" data-a="payopt" data-id="online"'+(S.pay==="online"?' checked':'')+' style="width:auto"> Pay online (UPI / card / netbanking)</label>':'';
+ return '<div class="row" style="display:block"><b>Payment</b><div style="margin-top:6px"><label style="display:block;padding:6px 0"><input type="radio" name="pay" data-a="payopt" data-id="cod"'+(payM()==="on_delivery"?' checked':'')+' style="width:auto"> Cash on delivery</label>'+onOpt+crOpt+'</div></div>'}
+var rzS=null;
+function loadRzp(){
+ if(window.Razorpay)return Promise.resolve();
+ if(rzS)return rzS;
+ rzS=new Promise(function(res,rej){var sc=document.createElement("script");sc.src="https://checkout.razorpay.com/v1/checkout.js";sc.onload=res;sc.onerror=function(){rzS=null;rej(new Error("Could not load the payment page. Check your internet."))};document.head.appendChild(sc)});
+ return rzS}
+async function payOrder(oid){
+ try{
+  await loadRzp();
+  var c=await sb.functions.invoke("rapid-function",{body:{action:"create",order:oid}});
+  if(c.error||!c.data||c.data.error)throw new Error((c.data&&c.data.error)||(c.error&&c.error.message)||"Could not start the payment");
+  var d=c.data;
+  await new Promise(function(res){
+   var done=false;
+   var rz=new Razorpay({key:d.key_id,amount:d.amount,currency:"INR",order_id:d.rzp_order_id,name:"Nuvicon",description:"Order #"+d.order_no,
+    prefill:{contact:S.user&&S.user.phone?"+"+String(S.user.phone).replace(/^\+/,""):""},theme:{color:"#14191c"},
+    handler:async function(r){done=true;
+     var v=await sb.functions.invoke("rapid-function",{body:{action:"verify",order:oid,payment_id:r.razorpay_payment_id,signature:r.razorpay_signature}});
+     if(v.error||!v.data||v.data.error)S.err="Payment done but not confirmed yet. Check Orders in a moment. If money was deducted, we will confirm your order.";
+     res()},
+    modal:{ondismiss:function(){if(!done)res()}}});
+   rz.on("payment.failed",function(){});
+   rz.open()})
+ }catch(e){S.err=e.message||String(e)}
+ await loadOrders();load()}
 function loginV(){
  return '<div class="hero"><h1>Log in</h1><p>We will send a code to your phone.</p></div>'+
  (S.step==="phone"?
@@ -184,12 +219,12 @@ function loginV(){
  '<button class="btn big" data-a="verify"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Verify and continue')+'</button><button class="btn ghost big" style="margin-top:8px" data-a="changephone">Change number</button>')+
  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')}
 function ordersV(){
- var h='<div class="hero"><h1>Orders</h1></div>';
+ var h='<div class="hero"><h1>Orders</h1></div>'+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
  if(!S.orders.length)h+='<div class="empty"><p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
-  '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'}).join(", ")+'</small>'+
-  (o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
+  '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'}).join(", ")+'</small>'+
+  (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+(S.err&&S.view==="orders"?'<div class="err">'+esc(S.err)+'</div>':'')+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
  return h+'<button class="btn ghost" style="margin-top:10px" data-a="logout">Log out</button>'}
 function nav(){
  var t=[["home","Home"],["cart","Cart"+(cnt()?" ("+cnt()+")":"")],["orders","Orders"]];
@@ -205,23 +240,23 @@ document.addEventListener("click",async function(e){
  S.err="";
  if(a==="go"){
   if(id==="orders"&&!S.user){S.next="orders";S.view="login"}
-  else{S.view=id;if(id==="orders")loadOrders()}}
+  else{S.view=id;if(id==="orders"||id==="cart")loadOrders()}}
  else if(a==="cat")S.cat=id;
  else if(a==="inc"){var x=S.V[id];if((S.cart[id]||0)<x.v.avail)S.cart[id]=(S.cart[id]||0)+1}
  else if(a==="dec"){S.cart[id]=(S.cart[id]||0)-1;if(S.cart[id]<1)delete S.cart[id]}
  else if(a==="mylocation"){
-  if(!navigator.geolocation){S.err="Is phone mein location nahi mil sakti. Map pe pin lagao."}
-  else{navigator.geolocation.getCurrentPosition(function(p){setLoc(p.coords.latitude,p.coords.longitude)},function(){S.err="Location nahi mili. Permission do ya map pe pin lagao.";render()},{enableHighAccuracy:true,timeout:15000});S.err=""}}
+  if(!navigator.geolocation){S.err="Location is not available on this phone. Pick a point on the map."}
+  else{navigator.geolocation.getCurrentPosition(function(p){setLoc(p.coords.latitude,p.coords.longitude)},function(){S.err="Could not get your location. Allow permission or pick a point on the map.";render()},{enableHighAccuracy:true,timeout:15000});S.err=""}}
  else if(a==="openmap"){await openMap();return}
  else if(a==="mapsearch"){
   var q9=(document.getElementById("msq").value||"").trim();
-  if(q9){try{var gr=await new google.maps.Geocoder().geocode({address:q9+", "+S.city});var lo=gr.results&&gr.results[0]&&gr.results[0].geometry.location;if(lo){MP.map.setCenter(lo);MP.map.setZoom(16);MP.mv(lo)}else{document.getElementById("mapt").textContent="Yeh jagah nahi mili"}}catch(e){document.getElementById("mapt").textContent="Search nahi hua"}}
+  if(q9){try{var gr=await new google.maps.Geocoder().geocode({address:q9+", "+S.city});var lo=gr.results&&gr.results[0]&&gr.results[0].geometry.location;if(lo){MP.map.setCenter(lo);MP.map.setZoom(16);MP.mv(lo)}else{document.getElementById("mapt").textContent="Place not found"}}catch(e){document.getElementById("mapt").textContent="Search failed"}}
   return}
  else if(a==="mapx"){closeMap();return}
  else if(a==="mapok"){closeMap();setLoc(MP.pos.lat,MP.pos.lng);return}
  else if(a==="retry"){S.loadErr="";render();return load()}
  else if(a==="changephone"){S.step="phone";S.otp=""}
- else if(a==="logout"){await sb.auth.signOut();S.user=null;S.orders=[];S.view="home"}
+ else if(a==="logout"){await sb.auth.signOut();S.user=null;S.cr=null;S.orders=[];S.view="home"}
  else if(a==="sendotp"){
   if(!/^[6-9][0-9]{9}$/.test(S.phone)){S.err="Enter a valid 10-digit mobile number."}
   else{S.busy=true;render();
@@ -232,20 +267,23 @@ document.addEventListener("click",async function(e){
   var r2=await sb.auth.verifyOtp({phone:"+91"+S.phone,token:S.otp,type:"sms"});
   S.busy=false;
   if(r2.error)S.err=r2.error.message;
-  else{S.user=r2.data.user;S.step="phone";S.otp="";S.view=S.next;if(S.view==="orders")loadOrders()}}
+  else{S.user=r2.data.user;S.step="phone";S.otp="";S.view=S.next;loadOrders()}}
  else if(a==="order"){
   if(!S.user){S.next="cart";S.view="login"}
-  else if(geoMode()&&!S.loc){S.err="Pehle delivery location chuno."}
+  else if(geoMode()&&!S.loc){S.err="Please choose a delivery location first."}
   else if(geoMode()&&S.gm.radius&&S.loc.km>S.gm.radius){S.err="Hum "+S.gm.radius+" km tak hi deliver karte hain."}
   else if(!geoMode()&&!S.zone){S.err="Select a delivery zone first."}
   else{
    S.busy=true;render();
    var items=Object.keys(S.cart).map(function(k){return{variant_id:+k,qty:S.cart[k]}});
-   var args=geoMode()?{p_zone:null,p_pay:"on_delivery",p_address:S.addr,p_items:items,p_area:S.area||"",p_lat:S.loc.lat,p_lng:S.loc.lng,p_road_km:S.loc.km}:{p_zone:+S.zone,p_pay:"on_delivery",p_address:S.addr,p_items:items};
+   var args=geoMode()?{p_zone:null,p_pay:payM(),p_address:S.addr,p_items:items,p_area:S.area||"",p_lat:S.loc.lat,p_lng:S.loc.lng,p_road_km:S.loc.km}:{p_zone:+S.zone,p_pay:payM(),p_address:S.addr,p_items:items};
    var r3=await sb.rpc("place_order",args);
    S.busy=false;
    if(r3.error){S.err=r3.error.message;load()}
-   else{S.cart={};S.addr="";S.loc=null;S.area="";S.areaEdited=false;S.view="orders";await loadOrders();load()}}}
+   else{var onl=payM()==="online";S.cart={};S.addr="";S.loc=null;S.area="";S.areaEdited=false;S.view="orders";S.err="";await loadOrders();load();if(onl){S.busy=true;render();await payOrder(r3.data);S.busy=false}}}}
+ else if(a==="payopt"){S.pay=id}
+ else if(a==="paynow"){S.err="";S.busy=true;render();await payOrder(+id);S.busy=false}
+ else if(a==="cxl"){if(!confirm("Cancel this order?"))return;var rc=await sb.rpc("cancel_my_unpaid",{p_order:+id});if(rc.error)S.err=rc.error.message;else{S.err=""}await loadOrders();load()}
  render();window.scrollTo(0,y)});
 document.addEventListener("input",function(e){
  var i=e.target.id;
@@ -256,7 +294,7 @@ document.addEventListener("input",function(e){
  else if(i==="area"){S.area=e.target.value;S.areaEdited=true}});
 document.addEventListener("change",function(e){if(e.target.id==="zone")S.zone=e.target.value});
 sb.auth.onAuthStateChange(function(ev,s){S.user=s?s.user:null});
-sb.auth.getSession().then(function(r){if(r.data&&r.data.session)S.user=r.data.session.user});
+sb.auth.getSession().then(function(r){if(r.data&&r.data.session){S.user=r.data.session.user;loadOrders()}});
 setInterval(function(){if(S.view==="orders"&&S.user)loadOrders()},20000);
 render();load();
 </script>
