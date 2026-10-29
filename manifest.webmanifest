@@ -1,7 +1,8 @@
 {
  "name": "Nuvicon",
  "short_name": "Nuvicon",
- "description": "Construction materials delivered from our Nagpur Godown",
+ "id": "/",
+ "description": "Order construction materials for delivery",
  "start_url": "/",
  "scope": "/",
  "display": "standalone",
@@ -27,5 +28,9 @@
    "type": "image/png",
    "purpose": "maskable"
   }
+ ],
+ "categories": [
+  "shopping",
+  "business"
  ]
 }

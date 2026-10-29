@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.nuvicon_app.twa",
+        "sha256_cert_fingerprints": ["AD:C1:81:AA:47:C1:89:B0:1F:1C:99:FE:D4:26:60:63:C6:EE:57:E9:7C:5B:BF:53:F8:C8:BE:B2:7F:7E:6D:D5"]
+      }
+    }]
