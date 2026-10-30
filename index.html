@@ -191,11 +191,16 @@ function loadRzp(){
  if(rzS)return rzS;
  rzS=new Promise(function(res,rej){var sc=document.createElement("script");sc.src="https://checkout.razorpay.com/v1/checkout.js";sc.onload=res;sc.onerror=function(){rzS=null;rej(new Error("Could not load the payment page. Check your internet."))};document.head.appendChild(sc)});
  return rzS}
+async function fnErr(r){
+ try{if(r.data&&r.data.error)return r.data.error;
+  if(r.error&&r.error.context&&r.error.context.text){var t=await r.error.context.text();try{var j=JSON.parse(t);return (j.error||j.message||j.msg||t)+" (code "+r.error.context.status+")"}catch(e){return t+" (code "+r.error.context.status+")"}}
+  if(r.error)return r.error.message}catch(e){}
+ return ""}
 async function payOrder(oid){
  try{
   await loadRzp();
   var c=await sb.functions.invoke("rapid-function",{body:{action:"create",order:oid}});
-  if(c.error||!c.data||c.data.error)throw new Error((c.data&&c.data.error)||(c.error&&c.error.message)||"Could not start the payment");
+  if(c.error||!c.data||c.data.error)throw new Error((await fnErr(c))||"Could not start the payment");
   var d=c.data;
   await new Promise(function(res){
    var done=false;
@@ -203,7 +208,7 @@ async function payOrder(oid){
     prefill:{contact:S.user&&S.user.phone?"+"+String(S.user.phone).replace(/^\+/,""):""},theme:{color:"#14191c"},
     handler:async function(r){done=true;
      var v=await sb.functions.invoke("rapid-function",{body:{action:"verify",order:oid,payment_id:r.razorpay_payment_id,signature:r.razorpay_signature}});
-     if(v.error||!v.data||v.data.error)S.err="Payment done but not confirmed yet. Check Orders in a moment. If money was deducted, we will confirm your order.";
+     if(v.error||!v.data||v.data.error)S.err="Payment done but not confirmed yet ("+((await fnErr(v))||"unknown")+"). Check Orders in a moment. If money was deducted, we will confirm your order.";
      res()},
     modal:{ondismiss:function(){if(!done)res()}}});
    rz.on("payment.failed",function(){});
@@ -219,12 +224,12 @@ function loginV(){
  '<button class="btn big" data-a="verify"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Verify and continue')+'</button><button class="btn ghost big" style="margin-top:8px" data-a="changephone">Change number</button>')+
  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')}
 function ordersV(){
- var h='<div class="hero"><h1>Orders</h1></div>'+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
+ var h='<div class="hero"><h1>Orders</h1></div>'+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
  if(!S.orders.length)h+='<div class="empty"><p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
   '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'}).join(", ")+'</small>'+
-  (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+(S.err&&S.view==="orders"?'<div class="err">'+esc(S.err)+'</div>':'')+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
+  (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+''+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
  return h+'<button class="btn ghost" style="margin-top:10px" data-a="logout">Log out</button>'}
 function nav(){
  var t=[["home","Home"],["cart","Cart"+(cnt()?" ("+cnt()+")":"")],["orders","Orders"]];
