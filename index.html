@@ -94,7 +94,8 @@ async function loadOrders(){
  var r=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});
  var cr=await sb.rpc("my_credit");
  if(!cr.error)S.cr=(cr.data&&cr.data.enabled)?cr.data:null;
- if(!r.error){S.orders=r.data;if(S.view==="orders"||S.view==="cart")render()}}
+ if(!r.error){S.orders=r.data;if(S.view==="orders"||S.view==="cart")render();
+  if(S.orders.some(function(o){return o.pay_method==="online"&&o.pay_status==="pending"&&o.status==="placed"&&(!syncT[o.id]||Date.now()-syncT[o.id]>15000)})){await syncPending();var r2=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});if(!r2.error){S.orders=r2.data;if(S.view==="orders")render()}}}}
 
 var MP={};
 function geoMode(){return !!(S.gm.key&&S.gm.godown)}
@@ -214,7 +215,17 @@ async function payOrder(oid){
    rz.on("payment.failed",function(){});
    rz.open()})
  }catch(e){S.err=e.message||String(e)}
+ await syncPay(oid);
  await loadOrders();load()}
+var syncT={};
+async function syncPay(oid){
+ try{var y=await sb.functions.invoke("rapid-function",{body:{action:"sync",order:oid}});
+  if(y.error){var m=await fnErr(y);if(m&&!S.err)S.err="Payment check failed: "+m}
+  else if(y.data&&y.data.paid)S.err=""}catch(e){}}
+async function syncPending(){
+ var now=Date.now();
+ for(var i=0;i<S.orders.length;i++){var o=S.orders[i];
+  if(o.pay_method==="online"&&o.pay_status==="pending"&&o.status==="placed"&&(!syncT[o.id]||now-syncT[o.id]>15000)){syncT[o.id]=now;await syncPay(o.id)}}}
 function loginV(){
  return '<div class="hero"><h1>Log in</h1><p>We will send a code to your phone.</p></div>'+
  (S.step==="phone"?
