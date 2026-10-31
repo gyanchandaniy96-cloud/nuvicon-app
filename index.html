@@ -74,7 +74,7 @@ function stx(a){return a<1?["Out of stock","st-out"]:a<=5?["Only "+a+" left","st
 async function load(){
  try{
   var a=await Promise.all([
-   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,inventory(total,reserved))").eq("active",true).order("id"),
+   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,weight_kg,price_per_kg,inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
    sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id"])]);
@@ -151,13 +151,13 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
  S.prods.forEach(function(p){
   if(S.cat!=="all"&&S.cat!==p.category)return;
   var nm=p.brand+" "+p.name;
-  var vs=p.variants.filter(function(v){return (nm+" "+v.label).toLowerCase().indexOf(s)>-1});
+  var vs=p.variants.filter(function(v){return v.avail>0&&(nm+" "+v.label).toLowerCase().indexOf(s)>-1});
   if(!vs.length)return;any=true;
   h+='<div class="ph"><b>'+esc(nm)+'</b><small>'+esc(cap(p.category))+', GST '+Number(p.gst_percent)+'%</small></div>'+
   vs.map(function(v){var t=stx(v.avail);
-   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(v.price)+' + GST</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
+   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(v.price)+' + GST'+(v.price_per_kg!=null&&Number(v.weight_kg)>0?' (approx. '+Number(v.weight_kg)+' kg × '+fmt(v.price_per_kg)+'/kg)':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
    (v.avail<1?'<button class="btn" disabled>Add</button>':stepper(v.id,v.avail))+'</div>'}).join("")});
- return any?h:'<div class="empty">No materials match “'+esc(S.q)+'”. Try a brand or a category.</div>'}
+ return any?h:(S.q?'<div class="empty">No materials match “'+esc(S.q)+'”. Try a brand or a category.</div>':'<div class="empty">No materials are available right now. Please check back soon.</div>')}
 function home(){
  var o=isOpen(),cats=[];
  S.prods.forEach(function(p){if(cats.indexOf(p.category)<0)cats.push(p.category)});
