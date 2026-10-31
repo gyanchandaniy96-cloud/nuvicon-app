@@ -80,6 +80,8 @@ function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("e
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function cnt(){var n=0;for(var k in S.cart)n+=S.cart[k];return n}
+function awt(l){var w=l.variants;return w&&w.fee_basis==='weight'&&Number(w.weight_kg)>0?' - approx. '+Math.round(l.qty*Number(w.weight_kg))+' kg':''}
+function cartKg(){var t=0;for(var k in S.cart){var x=S.V[k];if(x&&x.v.fee_basis==='weight'&&Number(x.v.weight_kg)>0)t+=S.cart[k]*Number(x.v.weight_kg)}return Math.round(t)}
 function delInfo(){
  if(!geoMode()||!S.loc||S.loc.km==null||!Object.keys(S.cart).length)return null;
  var f=S.fee,ld=0;
@@ -115,11 +117,11 @@ async function load(){
  render()}
 async function loadOrders(){
  if(!S.user)return;
- var r=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});
+ var r=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty,variants(fee_basis,weight_kg))").order("created_at",{ascending:false});
  var cr=await sb.rpc("my_credit");
  if(!cr.error)S.cr=(cr.data&&cr.data.enabled)?cr.data:null;
  if(!r.error){S.orders=r.data;if(S.view==="orders"||S.view==="cart")render();
-  if(S.orders.some(function(o){return o.pay_method==="online"&&o.pay_status==="pending"&&o.status==="placed"&&(!syncT[o.id]||Date.now()-syncT[o.id]>15000)})){await syncPending();var r2=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty)").order("created_at",{ascending:false});if(!r2.error){S.orders=r2.data;if(S.view==="orders")render()}}}}
+  if(S.orders.some(function(o){return o.pay_method==="online"&&o.pay_status==="pending"&&o.status==="placed"&&(!syncT[o.id]||Date.now()-syncT[o.id]>15000)})){await syncPending();var r2=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty,variants(fee_basis,weight_kg))").order("created_at",{ascending:false});if(!r2.error){S.orders=r2.data;if(S.view==="orders")render()}}}}
 
 var MP={};
 function geoMode(){return !!(S.gm.key&&S.gm.godown)}
@@ -194,8 +196,8 @@ function cartV(){
  if(!ids.length)return '<div class="empty"><p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  var m=sums(),o=isOpen();
  return '<div class="hero"><h1>Cart</h1></div>'+ids.map(function(k){var x=S.V[k];
-  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(incl(x.v.price,x.p.gst_percent))+' × '+S.cart[k]+' = '+fmt(incl(x.v.price,x.p.gst_percent)*S.cart[k])+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
- '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div>'+(m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery ('+S.loc.km+' km)</span><span>'+fmt(m.d)+'</span></div>'+(m.dg>0?'<div style="display:flex;justify-content:space-between"><span>GST on delivery</span><span>'+fmt(m.dg)+'</span></div>':''):'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+'</div>'+
+  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(incl(x.v.price,x.p.gst_percent))+' × '+S.cart[k]+' = '+fmt(incl(x.v.price,x.p.gst_percent)*S.cart[k])+(x.v.fee_basis==='weight'&&Number(x.v.weight_kg)>0?' (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':'')+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
+ '<div class="row" style="display:block">'+(cartKg()>0?'<div style="display:flex;justify-content:space-between"><span>Steel weight</span><span>approx. '+cartKg()+' kg</span></div>':'')+'<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div>'+(m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery ('+S.loc.km+' km)</span><span>'+fmt(m.d)+'</span></div>'+(m.dg>0?'<div style="display:flex;justify-content:space-between"><span>GST on delivery</span><span>'+fmt(m.dg)+'</span></div>':''):'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+'</div>'+
  '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
@@ -263,7 +265,7 @@ function ordersV(){
  if(!S.orders.length)h+='<div class="empty"><p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
-  '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'}).join(", ")+'</small>'+
+  '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'+awt(l)}).join(", ")+'</small>'+
   (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+''+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
  return h+'<button class="btn ghost" style="margin-top:10px" data-a="logout">Log out</button>'}
 function nav(){
