@@ -47,7 +47,7 @@ h2{font-size:13px;font-weight:800;margin:18px 0 6px;color:var(--mut)}
 nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
 nav button{flex:1;padding:14px 0;border:0;background:transparent;color:var(--mut);font:600 14px Archivo,system-ui,sans-serif;cursor:pointer}
 nav button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--acc)}
-.sel{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;margin-bottom:8px}.ph{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 6px}.ph b{font-weight:800}.ph small{color:var(--mut)}.open{font-size:13px;font-weight:600;padding:6px 0}.vrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-bottom:0;padding:10px 12px}.vrow:last-child{border-bottom:1px solid var(--line)}.track div{font-size:10px}.err{color:var(--bad);font-size:13px;margin:6px 0}.note{font-size:12px;color:var(--mut);margin-top:8px}
+.sel{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;margin-bottom:8px}.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 6px}.ph .ic{flex:none;width:40px;height:40px;border-radius:8px;background:var(--ink);color:var(--acc);display:flex;align-items:center;justify-content:center}.ph .ic svg{width:26px;height:26px}.ph .pt{flex:1;min-width:0;display:flex;flex-direction:column}.herow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}.herow svg{flex:none;width:132px;height:84px;color:var(--ink)}.emp svg{width:120px;height:90px;color:var(--mut);opacity:.9;margin-bottom:6px}.ph b{font-weight:800}.ph small{color:var(--mut)}.open{font-size:13px;font-weight:600;padding:6px 0}.vrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-bottom:0;padding:10px 12px}.vrow:last-child{border-bottom:1px solid var(--line)}.track div{font-size:10px}.err{color:var(--bad);font-size:13px;margin:6px 0}.note{font-size:12px;color:var(--mut);margin-top:8px}
 </style></head>
 <body>
 <div class="tape"></div>
@@ -78,6 +78,16 @@ var S={fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",p
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
+var IC={
+cement:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M6 9l4-3h12l4 3v17l-4 2H10l-4-2z"/><path d="M6 9h20M11 15h10M11 20h10"/></svg>',
+steel:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h24M4 14h24M4 19h24M4 24h24"/><path d="M9 6v22M16 6v22M23 6v22" stroke-width="1.4" opacity=".6"/></svg>',
+brick:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="7" width="24" height="18" rx="1"/><path d="M4 13h24M4 19h24M12 7v6M20 7v6M8 13v6M16 13v6M24 13v6M12 19v6M20 19v6"/></svg>',
+sand:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 26L13 10l5 8 3-4 8 12z"/><path d="M3 26h26"/></svg>',
+paint:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M7 11h18l-2 16H9z"/><ellipse cx="16" cy="11" rx="9" ry="3"/><path d="M12 7a4 4 0 018 0"/></svg>',
+box:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M16 4l11 6v12l-11 6-11-6V10z"/><path d="M5 10l11 6 11-6M16 16v12"/></svg>'};
+function ico(c){c=String(c||"").toLowerCase();return IC[/cement/.test(c)?"cement":/steel|rebar|tmt|rod|iron/.test(c)?"steel":/brick|block|aac/.test(c)?"brick":/sand|aggregate|grit|stone|metal/.test(c)?"sand":/putty|paint|primer|chemical|adhesive|waterproof/.test(c)?"paint":"box"]}
+var HEROSVG='<svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M2 80h128"/><path d="M14 80V50h18v30M32 80V38h16v42"/><path d="M60 80V30l10-6 10 6v50"/><path d="M92 80V8M92 8h30M92 8l-12 12M92 8l30 0M118 8v14" /><rect x="112" y="22" width="12" height="10" fill="#F2B705" stroke="currentColor"/><path d="M40 46h2M40 54h2M40 62h2M66 40h8M66 50h8M66 60h8" stroke-width="1.5"/></svg>';
+function emptySvg(k){return '<svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+(k==="cart"?'<path d="M10 14h14l10 44h54l10-34H30"/><circle cx="42" cy="72" r="6"/><circle cx="80" cy="72" r="6"/><path d="M46 36h34M48 46h30" opacity=".5"/>':'<path d="M22 12h56l10 10v58H22z"/><path d="M78 12v10h10M34 36h42M34 48h42M34 60h26" opacity=".6"/>')+'</svg>'}
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function cnt(){var n=0;for(var k in S.cart)n+=S.cart[k];return n}
 function awt(l){var w=l.variants;return w&&w.fee_basis==='weight'&&Number(w.weight_kg)>0?' - approx. '+Math.round(l.qty*Number(w.weight_kg))+' kg':''}
@@ -179,7 +189,7 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
   var nm=p.brand+" "+p.name;
   var vs=p.variants.filter(function(v){return v.avail>0&&(nm+" "+v.label).toLowerCase().indexOf(s)>-1});
   if(!vs.length)return;any=true;
-  h+='<div class="ph"><b>'+esc(nm)+'</b><small>'+esc(cap(p.category))+', GST '+Number(p.gst_percent)+'%</small></div>'+
+  h+='<div class="ph"><span class="ic">'+ico(p.category)+'</span><span class="pt"><b>'+esc(nm)+'</b><small>'+esc(cap(p.category))+', GST '+Number(p.gst_percent)+'%</small></span></div>'+
   vs.map(function(v){var t=stx(v.avail);
    return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(incl(v.price,p.gst_percent))+' incl. GST'+(v.price_per_kg!=null&&Number(v.weight_kg)>0?' (approx. '+Number(v.weight_kg)+' kg × '+fmt(incl(v.price_per_kg,p.gst_percent))+'/kg)':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
    (v.avail<1?'<button class="btn" disabled>Add</button>':stepper(v.id,v.avail))+'</div>'}).join("")});
@@ -187,13 +197,13 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
 function home(){
  var o=isOpen(),cats=[];
  S.prods.forEach(function(p){if(cats.indexOf(p.category)<0)cats.push(p.category)});
- return '<div class="hero"><h1>Nuvicon</h1><p>Construction materials, delivered to your site.</p><div class="open" style="color:var(--'+(o?'ok':'bad')+')">'+(o?'Store open':'Currently closed. Orders open 9:00 AM to 8:00 PM, Monday to Saturday.')+'</div></div>'+
+ return '<div class="hero"><div class="herow"><div><h1>Nuvicon</h1><p>Construction materials, delivered to your site.</p></div>'+HEROSVG+'</div><div class="open" style="color:var(--'+(o?'ok':'bad')+')">'+(o?'Store open':'Currently closed. Orders open 9:00 AM to 8:00 PM, Monday to Saturday.')+'</div></div>'+
  '<input type="search" id="q" placeholder="Search cement, rebar, putty…" value="'+esc(S.q)+'">'+
  '<div class="chips">'+["all"].concat(cats).map(function(c){return '<button class="chip'+(c===S.cat?' on':'')+'" data-a="cat" data-id="'+esc(c)+'">'+esc(cap(c))+'</button>'}).join("")+'</div>'+
  '<div id="list">'+list()+'</div>'}
 function cartV(){
  var ids=Object.keys(S.cart).filter(function(k){return S.V[k]});
- if(!ids.length)return '<div class="empty"><p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
+ if(!ids.length)return '<div class="empty emp">'+emptySvg("cart")+'<p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  var m=sums(),o=isOpen();
  return '<div class="hero"><h1>Cart</h1></div>'+ids.map(function(k){var x=S.V[k];
   return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(incl(x.v.price,x.p.gst_percent))+' × '+S.cart[k]+' = '+fmt(incl(x.v.price,x.p.gst_percent)*S.cart[k])+(x.v.fee_basis==='weight'&&Number(x.v.weight_kg)>0?' (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':'')+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
@@ -262,7 +272,7 @@ function loginV(){
  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')}
 function ordersV(){
  var h='<div class="hero"><h1>Orders</h1></div>'+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
- if(!S.orders.length)h+='<div class="empty"><p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
+ if(!S.orders.length)h+='<div class="empty emp">'+emptySvg("orders")+'<p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
   '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+(o.distance_km!=null?', '+o.distance_km+' km':'')+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'+awt(l)}).join(", ")+'</small>'+
