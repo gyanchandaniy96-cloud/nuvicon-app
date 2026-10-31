@@ -60,7 +60,8 @@ try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClien
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
 var S={cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"Pusad",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
-function fmt(n){return "₹"+Math.round(Number(n)).toLocaleString("en-IN")}
+function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
+function incl(v,g){return Number(v)*(1+Number(g)/100)}
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function cnt(){var n=0;for(var k in S.cart)n+=S.cart[k];return n}
 function sums(){var s=0,g=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var l=x.v.price*S.cart[k];s+=l;g+=l*x.p.gst_percent/100}return{s:s,g:g,t:s+g}}
@@ -155,7 +156,7 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
   if(!vs.length)return;any=true;
   h+='<div class="ph"><b>'+esc(nm)+'</b><small>'+esc(cap(p.category))+', GST '+Number(p.gst_percent)+'%</small></div>'+
   vs.map(function(v){var t=stx(v.avail);
-   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(v.price)+' + GST'+(v.price_per_kg!=null&&Number(v.weight_kg)>0?' (approx. '+Number(v.weight_kg)+' kg × '+fmt(v.price_per_kg)+'/kg)':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
+   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(incl(v.price,p.gst_percent))+' incl. GST'+(v.price_per_kg!=null&&Number(v.weight_kg)>0?' (approx. '+Number(v.weight_kg)+' kg × '+fmt(incl(v.price_per_kg,p.gst_percent))+'/kg)':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
    (v.avail<1?'<button class="btn" disabled>Add</button>':stepper(v.id,v.avail))+'</div>'}).join("")});
  return any?h:(S.q?'<div class="empty">No materials match “'+esc(S.q)+'”. Try a brand or a category.</div>':'<div class="empty">No materials are available right now. Please check back soon.</div>')}
 function home(){
@@ -170,7 +171,7 @@ function cartV(){
  if(!ids.length)return '<div class="empty"><p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  var m=sums(),o=isOpen();
  return '<div class="hero"><h1>Cart</h1></div>'+ids.map(function(k){var x=S.V[k];
-  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(x.v.price)+' × '+S.cart[k]+' = '+fmt(x.v.price*S.cart[k])+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
+  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(incl(x.v.price,x.p.gst_percent))+' × '+S.cart[k]+' = '+fmt(incl(x.v.price,x.p.gst_percent)*S.cart[k])+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
  '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div></div>'+
  '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
