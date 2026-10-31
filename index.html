@@ -74,7 +74,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:18},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
