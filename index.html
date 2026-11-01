@@ -37,7 +37,7 @@ h2{font-size:13px;font-weight:800;margin:18px 0 6px;color:var(--mut)}
 .btn.big{width:100%;padding:14px;font-size:16px}
 .step{display:flex;align-items:center;border:1.5px solid var(--line);border-radius:6px}
 .step button{width:34px;height:34px;border:0;background:transparent;color:var(--ink);font-size:18px;cursor:pointer}
-.step span{min-width:26px;text-align:center;font-weight:800}
+.step span{min-width:26px;text-align:center;font-weight:800}.step button:disabled{opacity:.35}
 .sum{display:flex;justify-content:space-between;font-size:18px;font-weight:800;padding:14px 0}
 .empty{text-align:center;color:var(--mut);padding:40px 10px}
 .track{display:flex;margin:12px 0 4px}
@@ -110,6 +110,10 @@ var S={gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
+function up(v,q){var p=Number(v.price),b=v.bulk_prices||[],m=0;for(var i=0;i<b.length;i++){if(b[i].min_qty<=q&&b[i].min_qty>m&&Number(b[i].price)<p){m=b[i].min_qty;p=Number(b[i].price)}}return p}
+function isW(v){return v.fee_basis==='weight'&&Number(v.weight_kg)>0}
+function pk(v,price,g){return fmt(incl(Number(price)/Number(v.weight_kg),g))+'/kg'}
+function nextTier(v,q){var b=(v.bulk_prices||[]).filter(function(t){return t.min_qty>q&&Number(t.price)<Number(v.price)}).sort(function(x,y){return x.min_qty-y.min_qty});return b[0]||null}
 var IC={
 cement:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M6 9l4-3h12l4 3v17l-4 2H10l-4-2z"/><path d="M6 9h20M11 15h10M11 20h10"/></svg>',
 steel:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h24M4 14h24M4 19h24M4 24h24"/><path d="M9 6v22M16 6v22M23 6v22" stroke-width="1.4" opacity=".6"/></svg>',
@@ -132,7 +136,7 @@ function delInfo(){
  for(var k in S.cart){var x=S.V[k];if(!x)continue;var q=S.cart[k];ld+=x.v.fee_basis==="weight"?q*(Number(x.v.weight_kg)||0)/100*f.qtl:q*f.bag}
  var fee=Math.max(f.min,Math.round(ld+Math.max(0,S.loc.km-f.free)*f.km));
  return {fee:fee,gst:Math.round(fee*f.gst)/100}}
-function sums(){var s=0,g=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var l=x.v.price*S.cart[k];s+=l;g+=l*x.p.gst_percent/100}
+function sums(){var s=0,g=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var l=up(x.v,S.cart[k])*S.cart[k];s+=l;g+=l*x.p.gst_percent/100}
  var d=delInfo(),df=d?d.fee:0,dg=d?d.gst:0;return{s:s,g:g,d:df,dg:dg,hasD:!!d,t:s+g+df+dg}}
 function isOpen(){
  if(S.force)return false;
@@ -144,7 +148,7 @@ function stx(a){return a<1?["Out of stock","st-out"]:a<=5?["Only "+a+" left","st
 async function load(){
  try{
   var a=await Promise.all([
-   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,price_per_kg,inventory(total,reserved))").eq("active",true).order("id"),
+   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,price_per_kg,bulk_prices(min_qty,price),inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
    sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent"])]);
@@ -198,7 +202,7 @@ async function setLoc(lat,lng){
 function locBlock(){
  var l=S.loc,rad=S.gm.radius,far=l&&rad&&l.km>rad;
  return '<div class="row" style="display:block"><b>Delivery location</b>'+
- (l?'<br><small>'+esc(l.text)+'</small><br><b>About '+l.km+' km from us</b>'+(far?'<div class="err">We deliver up to '+rad+' km only.</div>':''):'<br><small>Use your current location or pick a point on the map.</small>')+
+ (l?'<br><small>'+esc(l.text)+'</small><br><b>About '+l.km+' km from us</b>'+(far?'<div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#fde8e6;border:1.5px solid #d9534f;color:#8a1f17;font-weight:800">&#10060; Not serviceable at this location<br><small style="font-weight:600">We deliver only within '+rad+' km of our godown. Please choose a location closer to us.</small></div>':(l&&rad?'<div style="margin-top:6px;color:#1f7a4d;font-weight:800;font-size:13px">&#10003; Serviceable &mdash; we deliver here</div>':'')):'<br><small>Use your current location or pick a point on the map.</small>')+
  (S.locBusy?'<br><small>Location dekh raha hoon…</small>':'')+
  '<div style="display:flex;gap:8px;margin-top:8px"><button class="btn ghost" style="flex:1" data-a="mylocation">My location</button><button class="btn" style="flex:1" data-a="openmap">Pick on map</button></div>'+
  '<input class="sel" id="area" placeholder="Area / mohalla" value="'+esc(S.area)+'" style="margin-top:8px"></div>'}
@@ -216,7 +220,7 @@ async function openMap(){
 function closeMap(){var o=document.getElementById("mapov");if(o)o.remove()}
 function stepper(id,a){var n=S.cart[id]||0;
  if(!n)return '<button class="btn" data-a="inc" data-id="'+id+'">Add</button>';
- return '<div class="step"><button data-a="dec" data-id="'+id+'" aria-label="Remove one">−</button><span>'+n+'</span><button data-a="inc" data-id="'+id+'" aria-label="Add one"'+(n>=a?' disabled':'')+'>+</button></div>'}
+ return '<div class="step"><button data-a="dec10" data-id="'+id+'" aria-label="Remove ten">&laquo;</button><button data-a="dec" data-id="'+id+'" aria-label="Remove one">−</button><span>'+n+'</span><button data-a="inc" data-id="'+id+'" aria-label="Add one"'+(n>=a?' disabled':'')+'>+</button><button data-a="inc10" data-id="'+id+'" aria-label="Add ten"'+(n>=a?' disabled':'')+'>&raquo;</button></div>'}
 function list(){var h="",any=false,s=S.q.toLowerCase();
  S.prods.forEach(function(p){
   if(S.cat!=="all"&&S.cat!==p.category)return;
@@ -225,7 +229,7 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
   if(!vs.length)return;any=true;
   h+='<div class="ph"><span class="ic">'+ico(p.category)+'</span><span class="pt"><b>'+esc(nm)+'</b><small>'+esc(cap(p.category))+', GST '+Number(p.gst_percent)+'%</small></span></div>'+
   vs.map(function(v){var t=stx(v.avail);
-   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+fmt(incl(v.price,p.gst_percent))+' incl. GST'+(v.price_per_kg!=null&&Number(v.weight_kg)>0?' (approx. '+Number(v.weight_kg)+' kg × '+fmt(incl(v.price_per_kg,p.gst_percent))+'/kg)':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
+   return '<div class="vrow"><div class="i"><b>'+esc(v.label)+'</b><small>'+(isW(v)?pk(v,v.price,p.gst_percent)+' incl. GST':fmt(incl(v.price,p.gst_percent))+' incl. GST')+((v.bulk_prices||[]).filter(function(t){return Number(t.price)<Number(v.price)}).sort(function(a,b){return a.min_qty-b.min_qty}).map(function(t){return '<br><span style="color:#1f7a4d;font-weight:800">Bulk: '+t.min_qty+'+ at '+(isW(v)?pk(v,t.price,p.gst_percent):fmt(incl(t.price,p.gst_percent))+' each')+'</span>'}).join(''))+(isW(v)?'<br>1 piece = approx. '+Number(v.weight_kg)+' kg':'')+'</small><br><small class="'+t[1]+'">'+t[0]+'</small></div>'+
    (v.avail<1?'<button class="btn" disabled>Add</button>':stepper(v.id,v.avail))+'</div>'}).join("")});
  return any?h:(S.q?'<div class="empty">No materials match “'+esc(S.q)+'”. Try a brand or a category.</div>':'<div class="empty">No materials are available right now. Please check back soon.</div>')}
 function home(){
@@ -241,13 +245,13 @@ function cartV(){
  if(!ids.length)return '<div class="empty emp">'+emptySvg("cart")+'<p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  var m=sums(),o=isOpen();
  return '<div class="hero"><h1>Cart</h1></div>'+ids.map(function(k){var x=S.V[k];
-  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+fmt(incl(x.v.price,x.p.gst_percent))+' × '+S.cart[k]+' = '+fmt(incl(x.v.price,x.p.gst_percent)*S.cart[k])+(x.v.fee_basis==='weight'&&Number(x.v.weight_kg)>0?' (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':'')+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
+  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+(isW(x.v)?pk(x.v,up(x.v,S.cart[k]),x.p.gst_percent)+' × '+S.cart[k]+' pcs (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent))+' × '+S.cart[k])+' = '+fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent)*S.cart[k])+(up(x.v,S.cart[k])<Number(x.v.price)?' <b style="color:#1f7a4d">(bulk price)</b>':'')+(function(){var nt=nextTier(x.v,S.cart[k]);return nt?'<br><span style="color:#1f7a4d;font-weight:700">Add '+(nt.min_qty-S.cart[k])+' more to get '+(isW(x.v)?pk(x.v,nt.price,x.p.gst_percent):fmt(incl(nt.price,x.p.gst_percent))+' each')+'</span>':''})()+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
  '<div class="row" style="display:block">'+(cartKg()>0?'<div style="display:flex;justify-content:space-between"><span>Steel weight</span><span>approx. '+cartKg()+' kg</span></div>':'')+'<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div>'+(m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery ('+S.loc.km+' km)</span><span>'+fmt(m.d)+'</span></div>'+(m.dg>0?'<div style="display:flex;justify-content:space-between"><span>GST on delivery</span><span>'+fmt(m.dg)+'</span></div>':''):'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+'</div>'+
  '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
  payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
- '<button class="btn big" data-a="order"'+(o&&!S.busy?'':' disabled')+'>'+(!o?'Store is closed':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
+ '<button class="btn big" data-a="order"'+(o&&!S.busy&&!(geoMode()&&S.loc&&S.gm.radius&&S.loc.km>S.gm.radius)?'':' disabled')+'>'+(!o?'Store is closed':(geoMode()&&S.loc&&S.gm.radius&&S.loc.km>S.gm.radius)?'Not serviceable here':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
  '<p class="note">'+(S.onl&&(S.gw==="cashfree"||S.rzk)?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
 function payM(){return S.pay==="credit"&&S.cr?"credit":S.onl&&(S.gw==="cashfree"||S.rzk)&&S.pay==="online"?"online":"on_delivery"}
 function payOpt(){
@@ -353,6 +357,8 @@ document.addEventListener("click",async function(e){
  else if(a==="cat")S.cat=id;
  else if(a==="inc"){var x=S.V[id];if((S.cart[id]||0)<x.v.avail)S.cart[id]=(S.cart[id]||0)+1}
  else if(a==="dec"){S.cart[id]=(S.cart[id]||0)-1;if(S.cart[id]<1)delete S.cart[id]}
+ else if(a==="inc10"){var x10=S.V[id];S.cart[id]=Math.min(x10.v.avail,(S.cart[id]||0)+10)}
+ else if(a==="dec10"){S.cart[id]=(S.cart[id]||0)-10;if(S.cart[id]<1)delete S.cart[id]}
  else if(a==="mylocation"){
   if(!navigator.geolocation){S.err="Location is not available on this phone. Pick a point on the map."}
   else{navigator.geolocation.getCurrentPosition(function(p){setLoc(p.coords.latitude,p.coords.longitude)},function(){S.err="Could not get your location. Allow permission or pick a point on the map.";render()},{enableHighAccuracy:true,timeout:15000});S.err=""}}
