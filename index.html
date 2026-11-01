@@ -48,6 +48,37 @@ nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px
 nav button{flex:1;padding:14px 0;border:0;background:transparent;color:var(--mut);font:600 14px Archivo,system-ui,sans-serif;cursor:pointer}
 nav button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--acc)}
 .sel{width:100%;padding:11px;border:1.5px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;margin-bottom:8px}.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:16px 0 6px}.ph .ic{flex:none;width:40px;height:40px;border-radius:8px;background:var(--ink);color:var(--acc);display:flex;align-items:center;justify-content:center}.ph .ic svg{width:26px;height:26px}.ph .pt{flex:1;min-width:0;display:flex;flex-direction:column}.herow{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}.herow svg{flex:none;width:132px;height:84px;color:var(--ink)}.emp svg{width:120px;height:90px;color:var(--mut);opacity:.9;margin-bottom:6px}.ph b{font-weight:800}.ph small{color:var(--mut)}.open{font-size:13px;font-weight:600;padding:6px 0}.vrow{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-bottom:0;padding:10px 12px}.vrow:last-child{border-bottom:1px solid var(--line)}.track div{font-size:10px}.err{color:var(--bad);font-size:13px;margin:6px 0}.note{font-size:12px;color:var(--mut);margin-top:8px}
+
+.hero2{position:relative;overflow:hidden;margin:14px 0 12px;border-radius:14px;background:linear-gradient(135deg,#1d2428 0%,#2b363c 60%,#3a2f10 100%);color:#fff;padding:18px 16px 0}
+.hero2:before{content:"";position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(242,183,5,.35),transparent 70%)}
+.hero2 h1{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:0;position:relative}
+.hero2 h1 span{color:var(--acc)}
+.hero2 p{margin:4px 0 0;color:#c9d1d6;max-width:240px;position:relative}
+.pill2{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:4px 10px;border-radius:99px;background:rgba(255,255,255,.1);font-size:12px;font-weight:700;position:relative}
+.pill2 i{width:8px;height:8px;border-radius:50%;background:#5cc38a;box-shadow:0 0 0 0 rgba(92,195,138,.6);animation:pls 1.8s infinite}
+.pill2.off i{background:#f07a6e;animation:none}
+@keyframes pls{70%{box-shadow:0 0 0 7px rgba(92,195,138,0)}100%{box-shadow:0 0 0 0 rgba(92,195,138,0)}}
+.scene{display:block;width:100%;height:92px;margin-top:6px;position:relative}
+.scene .truck{animation:drive 9s linear infinite}
+@keyframes drive{0%{transform:translateX(-70px)}100%{transform:translateX(420px)}}
+.scene .hook{animation:swing 3.2s ease-in-out infinite;transform-origin:292px 14px}
+@keyframes swing{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+.trust{display:flex;gap:8px;margin:0 0 12px}
+.trust div{flex:1;display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px;font-size:11.5px;font-weight:700;line-height:1.2}
+.trust svg{flex:none;width:20px;height:20px;color:var(--acc);background:var(--ink);border-radius:6px;padding:3px}
+.chip{display:inline-flex;align-items:center;gap:6px}.chip svg{width:15px;height:15px}
+.ph .ic{background:linear-gradient(145deg,#2b363c,#1d2428);box-shadow:0 2px 0 rgba(242,183,5,.5)}
+.vrow:first-of-type{border-radius:10px 10px 0 0}.vrow:last-child{border-radius:0 0 10px 10px}
+@media(prefers-reduced-motion:reduce){.scene .truck,.scene .hook,.pill2 i{animation:none}}
+
+.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0 6px}
+.ctile{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;padding:0;font:700 12px/1.2 Archivo,system-ui,sans-serif;color:var(--ink);text-align:center;cursor:pointer}
+.ctile .cb{width:100%;aspect-ratio:1;border-radius:16px;background:linear-gradient(160deg,#e6efe9,#f4ecd0);display:flex;align-items:center;justify-content:center;border:2px solid transparent;transition:transform .15s}
+.ctile:active .cb{transform:scale(.95)}
+.ctile svg{width:46%;height:46%;color:#1d2428}
+.ctile.on .cb{border-color:var(--ink);box-shadow:0 3px 0 var(--acc)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .ctile .cb{background:linear-gradient(160deg,#27333a,#3a3420)}:root:not([data-theme="light"]) .ctile svg{color:var(--acc)}}
+:root[data-theme="dark"] .ctile .cb{background:linear-gradient(160deg,#27333a,#3a3420)}:root[data-theme="dark"] .ctile svg{color:var(--acc)}
 </style></head>
 <body>
 <div class="tape"></div>
@@ -74,7 +105,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
@@ -86,7 +117,9 @@ sand:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2
 paint:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M7 11h18l-2 16H9z"/><ellipse cx="16" cy="11" rx="9" ry="3"/><path d="M12 7a4 4 0 018 0"/></svg>',
 box:'<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M16 4l11 6v12l-11 6-11-6V10z"/><path d="M5 10l11 6 11-6M16 16v12"/></svg>'};
 function ico(c){c=String(c||"").toLowerCase();return IC[/cement/.test(c)?"cement":/steel|rebar|tmt|rod|iron/.test(c)?"steel":/brick|block|aac/.test(c)?"brick":/sand|aggregate|grit|stone|metal/.test(c)?"sand":/putty|paint|primer|chemical|adhesive|waterproof/.test(c)?"paint":"box"]}
+var SCENE='<svg class="scene" viewBox="0 0 360 92" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><g fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="M0 90h360" stroke="#F2B705" stroke-width="3"/><g stroke="#8d99a0" stroke-width="2"><path d="M18 90V52h26v38M44 90V36h22v54M84 90V44h30v38"/><path d="M26 60h8M26 70h8M52 46h6M52 58h6M52 70h6M92 54h14M92 66h14" stroke-width="1.5" opacity=".7"/></g><g stroke="#F2B705" stroke-width="2.5"><path d="M292 90V6M292 6h58M292 6l-22 16M340 6v8"/><path d="M292 22l30-16M292 38l30-32" opacity=".5" stroke-width="1.5"/></g><g class="hook"><path d="M292 6v28" stroke="#c9d1d6" stroke-width="1.5"/><rect x="282" y="34" width="20" height="14" rx="2" fill="#F2B705" stroke="#F2B705"/></g><g class="truck"><rect x="120" y="62" width="44" height="22" rx="3" fill="#F2B705" stroke="#F2B705"/><path d="M164 70h14l8 8v6h-22z" fill="#fff" stroke="#fff"/><circle cx="134" cy="86" r="5" fill="#1d2428" stroke="#c9d1d6" stroke-width="2"/><circle cx="174" cy="86" r="5" fill="#1d2428" stroke="#c9d1d6" stroke-width="2"/><path d="M128 70h28" stroke="#1d2428" stroke-width="2"/></g></g></svg>';
 var HEROSVG='<svg viewBox="0 0 132 84" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M2 80h128"/><path d="M14 80V50h18v30M32 80V38h16v42"/><path d="M60 80V30l10-6 10 6v50"/><path d="M92 80V8M92 8h30M92 8l-12 12M92 8l30 0M118 8v14" /><rect x="112" y="22" width="12" height="10" fill="#F2B705" stroke="currentColor"/><path d="M40 46h2M40 54h2M40 62h2M66 40h8M66 50h8M66 60h8" stroke-width="1.5"/></svg>';
+var TR=['<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16V7h11v9M14 10h4l3 3v3h-7M7 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/></svg>','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6"/></svg>','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18M7 15h3"/></svg>'];
 function emptySvg(k){return '<svg viewBox="0 0 120 90" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">'+(k==="cart"?'<path d="M10 14h14l10 44h54l10-34H30"/><circle cx="42" cy="72" r="6"/><circle cx="80" cy="72" r="6"/><path d="M46 36h34M48 46h30" opacity=".5"/>':'<path d="M22 12h56l10 10v58H22z"/><path d="M78 12v10h10M34 36h42M34 48h42M34 60h26" opacity=".6"/>')+'</svg>'}
 function cap(t){return t.charAt(0).toUpperCase()+t.slice(1)}
 function cnt(){var n=0;for(var k in S.cart)n+=S.cart[k];return n}
@@ -113,7 +146,7 @@ async function load(){
    sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,price_per_kg,inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
-   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent"])]);
+   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent"])]);
   for(var i=0;i<a.length;i++)if(a[i].error)throw a[i].error;
   S.prods=a[0].data;S.V={};
   S.prods.forEach(function(p){
@@ -121,7 +154,7 @@ async function load(){
     var inv=Array.isArray(v.inventory)?v.inventory[0]:v.inventory;
     v.avail=inv?inv.total-inv.reserved:0;S.V[v.id]={p:p,v:v}})});
   S.zones=a[1].data;S.hours={};a[2].data.forEach(function(h){S.hours[h.day]=h});
-  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
+  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="pay_gateway")S.gw=String(x.value)==="cashfree"?"cashfree":"razorpay";if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
   S.loaded=true;S.loadErr="";
  }catch(e){S.loadErr=(e&&e.message)||String(e)}
  render()}
@@ -197,9 +230,10 @@ function list(){var h="",any=false,s=S.q.toLowerCase();
 function home(){
  var o=isOpen(),cats=[];
  S.prods.forEach(function(p){if(cats.indexOf(p.category)<0)cats.push(p.category)});
- return '<div class="hero"><div class="herow"><div><h1>Nuvicon</h1><p>Construction materials, delivered to your site.</p></div>'+HEROSVG+'</div><div class="open" style="color:var(--'+(o?'ok':'bad')+')">'+(o?'Store open':'Currently closed. Orders open 9:00 AM to 8:00 PM, Monday to Saturday.')+'</div></div>'+
+ return '<div class="hero2"><h1>Nuvi<span>con</span></h1><p>Construction materials, delivered to your site.</p><div class="pill2'+(o?'':' off')+'"><i></i>'+(o?'Store open':'Closed now. Orders open 9:00 AM to 8:00 PM, Monday to Saturday')+'</div>'+SCENE+'</div>'+
+ '<div class="trust"><div>'+TR[0]+'Site delivery</div><div>'+TR[1]+'GST in every price</div><div>'+TR[2]+'Pay online or on delivery</div></div>'+
  '<input type="search" id="q" placeholder="Search cement, rebar, putty…" value="'+esc(S.q)+'">'+
- '<div class="chips">'+["all"].concat(cats).map(function(c){return '<button class="chip'+(c===S.cat?' on':'')+'" data-a="cat" data-id="'+esc(c)+'">'+esc(cap(c))+'</button>'}).join("")+'</div>'+
+ '<div class="cgrid">'+["all"].concat(cats).map(function(c){return '<button class="ctile'+(c===S.cat?' on':'')+'" data-a="cat" data-id="'+esc(c)+'"><span class="cb">'+(c==="all"?IC.box:ico(c))+'</span>'+(c==="all"?'All materials':esc(cap(c)))+'</button>'}).join("")+'</div>'+
  '<div id="list">'+list()+'</div>'}
 function cartV(){
  var ids=Object.keys(S.cart).filter(function(k){return S.V[k]});
@@ -213,10 +247,10 @@ function cartV(){
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
  payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
  '<button class="btn big" data-a="order"'+(o&&!S.busy?'':' disabled')+'>'+(!o?'Store is closed':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
- '<p class="note">'+(S.onl&&S.rzk?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
-function payM(){return S.pay==="credit"&&S.cr?"credit":S.onl&&S.rzk&&S.pay==="online"?"online":"on_delivery"}
+ '<p class="note">'+(S.onl&&(S.gw==="cashfree"||S.rzk)?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
+function payM(){return S.pay==="credit"&&S.cr?"credit":S.onl&&(S.gw==="cashfree"||S.rzk)&&S.pay==="online"?"online":"on_delivery"}
 function payOpt(){
- var onl=S.onl&&S.rzk;
+ var onl=S.onl&&(S.gw==="cashfree"||S.rzk);
  if(!onl&&!S.cr)return '';
  var tot=sums().t,okc=S.cr&&tot<=Number(S.cr.available);
  var crOpt=S.cr?'<label style="display:block;padding:6px 0;'+(okc?'':'opacity:.55')+'"><input type="radio" name="pay" data-a="payopt" data-id="credit"'+(S.pay==="credit"?' checked':'')+(okc?'':' disabled')+' style="width:auto"> Credit <small>Available limit '+fmt(S.cr.available)+(okc?'':' (not enough for this order)')+'</small></label>':'';
@@ -233,7 +267,29 @@ async function fnErr(r){
   if(r.error&&r.error.context&&r.error.context.text){var t=await r.error.context.text();try{var j=JSON.parse(t);return (j.error||j.message||j.msg||t)+" (code "+r.error.context.status+")"}catch(e){return t+" (code "+r.error.context.status+")"}}
   if(r.error)return r.error.message}catch(e){}
  return ""}
+var cfS=null;
+function loadCf(){
+ if(window.Cashfree)return Promise.resolve();
+ if(cfS)return cfS;
+ cfS=new Promise(function(res,rej){var sc=document.createElement("script");sc.src="https://sdk.cashfree.com/js/v3/cashfree.js";sc.onload=res;sc.onerror=function(){cfS=null;rej(new Error("Could not load the payment page. Check your internet."))};document.head.appendChild(sc)});
+ return cfS}
+var PAYFN=function(){return S.gw==="cashfree"?"cashfree-pay":"rapid-function"};
+async function payCashfree(oid){
+ try{
+  await loadCf();
+  var c=await sb.functions.invoke("cashfree-pay",{body:{action:"create",order:oid}});
+  if(c.error||!c.data||c.data.error)throw new Error((await fnErr(c))||"Could not start the payment");
+  if(!c.data.already_paid){
+   var cf=Cashfree({mode:c.data.mode});
+   await cf.checkout({paymentSessionId:c.data.session_id,redirectTarget:"_modal"});
+   var v=await sb.functions.invoke("cashfree-pay",{body:{action:"verify",order:oid}});
+   if(v.error||!v.data||v.data.error)S.err="We could not confirm the payment yet ("+((await fnErr(v))||"unknown")+"). Check Orders in a moment. If money was deducted, we will confirm your order.";
+   else if(!v.data.paid)S.err="The payment was not completed. You can try again from Orders."}
+ }catch(e){S.err=e.message||String(e)}
+ await syncPay(oid);
+ await loadOrders();load()}
 async function payOrder(oid){
+ if(S.gw==="cashfree")return payCashfree(oid);
  try{
   await loadRzp();
   var c=await sb.functions.invoke("rapid-function",{body:{action:"create",order:oid}});
@@ -255,7 +311,7 @@ async function payOrder(oid){
  await loadOrders();load()}
 var syncT={};
 async function syncPay(oid){
- try{var y=await sb.functions.invoke("rapid-function",{body:{action:"sync",order:oid}});
+ try{var y=await sb.functions.invoke(PAYFN(),{body:{action:"sync",order:oid}});
   if(y.error){var m=await fnErr(y);if(m&&!S.err)S.err="Payment check failed: "+m}
   else if(y.data&&y.data.paid)S.err=""}catch(e){}}
 async function syncPending(){
@@ -271,7 +327,7 @@ function loginV(){
  '<button class="btn big" data-a="verify"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Verify and continue')+'</button><button class="btn ghost big" style="margin-top:8px" data-a="changephone">Change number</button>')+
  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')}
 function ordersV(){
- var h='<div class="hero"><h1>Orders</h1></div>'+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
+ var h='<div class="hero"><h1>Orders</h1></div>'+pushHtml()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
  if(!S.orders.length)h+='<div class="empty emp">'+emptySvg("orders")+'<p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
@@ -348,6 +404,42 @@ document.addEventListener("change",function(e){if(e.target.id==="zone")S.zone=e.
 sb.auth.onAuthStateChange(function(ev,s){S.user=s?s.user:null});
 sb.auth.getSession().then(function(r){if(r.data&&r.data.session){S.user=r.data.session.user;loadOrders()}});
 setInterval(function(){if(S.view==="orders"&&S.user)loadOrders()},20000);
+
+/* ---- push notifications ---- */
+var PUSH_APP="customer",PUSH_KEY="BKMcBeQZ2yZqZytWbzR6MToidiqs3a_c4EOs8LFs-x3liaaKSNziCXfQKXLgFiPcMTqKkKFEkpgEkI2yXKvD7Lk",PUSH_CARD="row",PUSHST="unknown",PUSHERR="",pushSavedFor=null;
+function b64u(s){var p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b),o=new Uint8Array(r.length);for(var i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
+function pushOK(){return"serviceWorker"in navigator&&"PushManager"in window&&"Notification"in window}
+function pushStandalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)}
+async function pushSave(sub){var j=sub.toJSON();var r=await sb.rpc("save_push_sub",{p_app:PUSH_APP,p_endpoint:j.endpoint,p_p256dh:j.keys.p256dh,p_auth:j.keys.auth});if(r.error)throw r.error}
+async function pushCheck(){
+ if(!pushOK()){PUSHST=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!pushStandalone()?"install":"unsupported";return}
+ if(Notification.permission==="denied"){PUSHST="blocked";return}
+ try{var reg=await navigator.serviceWorker.getRegistration();var sub=reg?await reg.pushManager.getSubscription():null;
+  PUSHST=(sub&&Notification.permission==="granted")?"on":"off"}catch(e){PUSHST="off"}}
+async function pushEnable(){
+ PUSHERR="";
+ try{
+  if(!pushOK())throw new Error("This browser cannot show notifications.");
+  var perm=await Notification.requestPermission();
+  if(perm!=="granted"){PUSHST=perm==="denied"?"blocked":"off";return}
+  var reg=await navigator.serviceWorker.ready;
+  var sub=await reg.pushManager.getSubscription()||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(PUSH_KEY)});
+  await pushSave(sub);pushSavedFor=S.user?S.user.id:null;PUSHST="on"
+ }catch(e){PUSHERR=e.message||String(e)}}
+function pushHtml(){
+ if(PUSHST==="off")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Order updates</b><br><small>Get notifications on this phone.</small><div style="margin-top:8px"><button class="btn sm" data-a="pushon">Turn on notifications</button></div>'+(PUSHERR?'<div class="err">'+esc(PUSHERR)+'</div>':'')+'</div>';
+ if(PUSHST==="install")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Order updates</b><br><small>To get notifications on iPhone: tap Share, then Add to Home Screen. Open the app from your Home Screen and turn on notifications there.</small></div>';
+ if(PUSHST==="blocked")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Notifications are blocked</b><br><small>Turn them on for this app in your phone settings.</small></div>';
+ return ''}
+document.addEventListener("click",async function(e){var b=e.target.closest&&e.target.closest('[data-a="pushon"]');if(!b)return;await pushEnable();render()});
+pushCheck().then(function(){render()});
+setInterval(function(){if(PUSHST==="on"&&typeof S!=="undefined"&&S.user&&pushSavedFor!==S.user.id){pushSavedFor=S.user.id;navigator.serviceWorker.getRegistration().then(function(r){return r&&r.pushManager.getSubscription()}).then(function(sub){if(sub)return pushSave(sub)}).catch(function(){pushSavedFor=null})}},5000);
+var cartSig=null;
+setInterval(function(){
+ if(!S.user||!S.loaded)return;
+ var it=[];for(var k in S.cart){if(S.cart[k]>0)it.push({variant_id:+k,qty:S.cart[k]})}
+ var sig=JSON.stringify(it);if(sig===cartSig||(cartSig===null&&!it.length))return;
+ sb.rpc("save_cart",{p_items:it}).then(function(r){if(!r.error)cartSig=sig}).catch(function(){})},4000);
 render();load();
 </script>
 <script>if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})</script>
