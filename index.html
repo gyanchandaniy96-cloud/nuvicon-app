@@ -407,7 +407,7 @@ sb.auth.getSession().then(function(r){if(r.data&&r.data.session){S.user=r.data.s
 setInterval(function(){if(S.view==="orders"&&S.user)loadOrders()},20000);
 
 /* ---- push notifications ---- */
-var PUSH_APP="customer",PUSH_KEY="BKMcBeQZ2yZqZytWbzR6MToidiqs3a_c4EOs8LFs-x3liaaKSNziCXfQKXLgFiPcMTqKkKFEkpgEkI2yXKvD7Lk",PUSH_CARD="row",PUSHST="unknown",PUSHERR="",pushSavedFor=null;
+var PUSH_APP="customer",PUSH_KEY="BKMcBeQZ2yZqZytWbzR6MToidiqs3a_c4EOs8LFs-x3liaaKSNziCXfQKXLgFiPcMTqKkKFEkpgEkI2yXKvD7Lk",PUSH_CARD="row",PUSHST="unknown",PUSHERR="",PUSHMSG="",pushSavedFor=null;
 function b64u(s){var p="=".repeat((4-s.length%4)%4),b=(s+p).replace(/-/g,"+").replace(/_/g,"/"),r=atob(b),o=new Uint8Array(r.length);for(var i=0;i<r.length;i++)o[i]=r.charCodeAt(i);return o}
 function pushOK(){return"serviceWorker"in navigator&&"PushManager"in window&&"Notification"in window}
 function pushStandalone(){return window.navigator.standalone===true||(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)}
@@ -431,8 +431,11 @@ function pushHtml(){
  if(PUSHST==="off")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Order updates</b><br><small>Get notifications on this phone.</small><div style="margin-top:8px"><button class="btn sm" data-a="pushon">Turn on notifications</button></div>'+(PUSHERR?'<div class="err">'+esc(PUSHERR)+'</div>':'')+'</div>';
  if(PUSHST==="install")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Order updates</b><br><small>To get notifications on iPhone: tap Share, then Add to Home Screen. Open the app from your Home Screen and turn on notifications there.</small></div>';
  if(PUSHST==="blocked")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Notifications are blocked</b><br><small>Turn them on for this app in your phone settings.</small></div>';
+ if(PUSHST==="on")return '<small style="display:block;color:var(--mut,#667078);margin:6px 0">Notifications are on. <a href="#" data-a="pushtest" style="color:inherit;text-decoration:underline">Send a test</a>'+(PUSHMSG?' <b>'+esc(PUSHMSG)+'</b>':'')+'</small>';
+ if(PUSHST==="unsupported")return '<div class="'+PUSH_CARD+'" style="display:block"><b>Notifications are not available</b><br><small>This phone or browser does not support them (iPhone needs iOS 16.4 or newer and the app opened from the Home Screen). Details: standalone '+(pushStandalone()?'yes':'no')+', push '+(("PushManager" in window)?'yes':'no')+', notification '+(("Notification" in window)?'yes':'no')+'.</small></div>';
  return ''}
-document.addEventListener("click",async function(e){var b=e.target.closest&&e.target.closest('[data-a="pushon"]');if(!b)return;await pushEnable();render()});
+document.addEventListener("click",async function(e){var t=e.target.closest&&e.target.closest('[data-a="pushtest"]');if(t){e.preventDefault();PUSHMSG="Sending...";render();try{var r=await sb.rpc("send_test_push");PUSHMSG=r.error?("Error: "+r.error.message):(r.data>0?"Test sent. It should arrive in a few seconds.":"No phone is registered for this login.")}catch(x){PUSHMSG="Error: "+(x.message||x)}render();setTimeout(function(){PUSHMSG="";render()},9000);return}
+ var b=e.target.closest&&e.target.closest('[data-a="pushon"]');if(!b)return;await pushEnable();render()});
 pushCheck().then(function(){render()});
 setInterval(function(){if(PUSHST==="on"&&typeof S!=="undefined"&&S.user&&pushSavedFor!==S.user.id){pushSavedFor=S.user.id;navigator.serviceWorker.getRegistration().then(function(r){return r&&r.pushManager.getSubscription()}).then(function(sub){if(sub)return pushSave(sub)}).catch(function(){pushSavedFor=null})}},5000);
 var cartSig=null;
