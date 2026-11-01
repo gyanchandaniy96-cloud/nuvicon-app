@@ -252,10 +252,11 @@ function cartV(){
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
  payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
  '<button class="btn big" data-a="order"'+(o&&!S.busy&&!(geoMode()&&S.loc&&S.gm.radius&&S.loc.km>S.gm.radius)?'':' disabled')+'>'+(!o?'Store is closed':(geoMode()&&S.loc&&S.gm.radius&&S.loc.km>S.gm.radius)?'Not serviceable here':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
- '<p class="note">'+(S.onl&&(S.gw==="cashfree"||S.rzk)?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
-function payM(){return S.pay==="credit"&&S.cr?"credit":S.onl&&(S.gw==="cashfree"||S.rzk)&&S.pay==="online"?"online":"on_delivery"}
+ '<p class="note">'+(onlOk()?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
+function onlOk(){return !!(S.onl&&(S.gw==="cashfree"||S.rzk))}
+function payM(){return S.pay==="credit"&&S.cr?"credit":onlOk()&&S.pay==="online"?"online":"on_delivery"}
 function payOpt(){
- var onl=S.onl&&(S.gw==="cashfree"||S.rzk);
+ var onl=onlOk();
  if(!onl&&!S.cr)return '';
  var tot=sums().t,okc=S.cr&&tot<=Number(S.cr.available);
  var crOpt=S.cr?'<label style="display:block;padding:6px 0;'+(okc?'':'opacity:.55')+'"><input type="radio" name="pay" data-a="payopt" data-id="credit"'+(S.pay==="credit"?' checked':'')+(okc?'':' disabled')+' style="width:auto"> Credit <small>Available limit '+fmt(S.cr.available)+(okc?'':' (not enough for this order)')+'</small></label>':'';
@@ -331,8 +332,11 @@ function loginV(){
  '<p class="note">Code sent to +91 '+esc(S.phone)+'.</p><input class="sel" id="otp" type="tel" inputmode="numeric" maxlength="6" placeholder="6-digit code" value="'+esc(S.otp)+'">'+
  '<button class="btn big" data-a="verify"'+(S.busy?' disabled':'')+'>'+(S.busy?'Checking…':'Verify and continue')+'</button><button class="btn ghost big" style="margin-top:8px" data-a="changephone">Change number</button>')+
  (S.err?'<div class="err">'+esc(S.err)+'</div>':'')}
+function stmtText(d){
+ var L=(d.lines||[]).map(function(x){var sg=(x.type==="bill"||x.type==="intchg")?"":"- ";return x.d+"  "+x.text+"  "+sg+"₹"+Number(x.amt).toLocaleString("en-IN")});
+ return (L.length?L.join("\n"):"No entries yet")+"\n\nBills still to pay: ₹"+Number(d.bills_due).toLocaleString("en-IN")+"\nLate interest to pay: ₹"+Number(d.interest_due).toLocaleString("en-IN")+"\nDeposit interest earned (credited yearly): ₹"+Number(d.sd_interest_pending).toLocaleString("en-IN")+"\n\nRates: 1.3% per month on a bill unpaid after 30 days (per day, unpaid part only). 6% per year on your security deposit."}
 function ordersV(){
- var h='<div class="hero"><h1>Orders</h1></div>'+pushHtml()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small></div>':'');
+ var h='<div class="hero"><h1>Orders</h1></div>'+pushHtml()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small>'+(Number(S.cr.interest_due)>0?'<br><small style="color:#b3392f;font-weight:700">Late interest to pay: '+fmt(S.cr.interest_due)+'</small>':'')+(Number(S.cr.sd_interest_pending)>0?'<br><small style="color:#1f7a4d">Deposit interest earned so far: '+fmt(S.cr.sd_interest_pending)+' (credited every year)</small>':'')+'<br><small>Pay credit bills within 30 days. After that 1.3% per month is charged on the unpaid part. Your payments first clear the late interest, then the bills. Your deposit earns 6% per year.</small><br><a data-a="cstmt" style="text-decoration:underline;font-weight:700;cursor:pointer">View statement</a></div>':'');
  if(!S.orders.length)h+='<div class="empty emp">'+emptySvg("orders")+'<p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
@@ -397,6 +401,7 @@ document.addEventListener("click",async function(e){
    if(r3.error){S.err=r3.error.message;load()}
    else{var onl=payM()==="online";S.cart={};S.addr="";S.loc=null;S.area="";S.areaEdited=false;S.view="orders";S.err="";await loadOrders();load();if(onl){S.busy=true;render();await payOrder(r3.data);S.busy=false}}}}
  else if(a==="payopt"){S.pay=id}
+ else if(a==="cstmt"){var sr=await sb.rpc("credit_statement");S.err=sr.error?sr.error.message:"";if(!sr.error)await dlgOpen(stmtText(sr.data),"alert")}
  else if(a==="paynow"){S.err="";S.busy=true;render();await payOrder(+id);S.busy=false}
  else if(a==="cxl"){if(!await conf("Cancel this order?"))return;var rc=await sb.rpc("cancel_my_unpaid",{p_order:+id});if(rc.error)S.err=rc.error.message;else{S.err=""}await loadOrders();load()}
  render();window.scrollTo(0,y)});
