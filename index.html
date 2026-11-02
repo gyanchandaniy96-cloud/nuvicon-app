@@ -106,7 +106,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
@@ -166,6 +166,7 @@ async function load(){
  render()}
 async function loadOrders(){
  if(!S.user)return;
+ try{var pf=await sb.from("profiles").select("gstin,firm_name").eq("id",S.user.id).maybeSingle();if(pf.data&&!S.gstTouched){S.gst=pf.data.gstin||"";S.firm=pf.data.firm_name||""}}catch(e0){}
  var r=await sb.from("orders").select("id,order_no,total,status,pay_status,pay_method,created_at,zones(name),area_text,distance_km,order_items(product_name,variant_label,qty,variants(fee_basis,weight_kg))").order("created_at",{ascending:false});
  var cr=await sb.rpc("my_credit");
  if(!cr.error)S.cr=(cr.data&&cr.data.enabled)?cr.data:null;
@@ -256,7 +257,7 @@ function cartV(){
  '<div class="row" style="display:block">'+(cartKg()>0?'<div style="display:flex;justify-content:space-between"><span>Steel weight</span><span>approx. '+cartKg()+' kg</span></div>':'')+'<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div>'+(m.hasD&&blockedLoc()?'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span style="color:#8a1f17;font-weight:800">Not available</span></div>':m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span>'+fmt(m.d)+'</span></div>'+(m.dg>0?'<div style="display:flex;justify-content:space-between"><span>GST on delivery</span><span>'+fmt(m.dg)+'</span></div>':''):'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+'</div>'+
  '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
- '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+
+ '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+'<div class="row" style="display:block"><b>GST bill (optional)</b><br><small>Add your GST number if you want the bill in your firm name.</small><input class="sel" id="gst" maxlength="15" autocapitalize="characters" placeholder="GST number (15 characters)" value="'+esc(S.gst)+'" style="margin-top:8px"><input class="sel" id="firm" placeholder="Firm / business name" value="'+esc(S.firm)+'"></div>'+
  payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
  '<button class="btn big" data-a="order"'+(o&&!S.busy&&!blockedLoc()?'':' disabled')+'>'+(!o?'Store is closed':blockedLoc()?'Not available here':S.busy?'Placing order…':S.user?(payM()==="online"?'Pay online':'Place order'):'Log in to place order')+'</button>'+
  '<p class="note">'+(onlOk()?'Pay online now or in cash on delivery. ':S.cr?'':'Payment is on delivery. ')+'The delivery charge is included in your total.</p>'}
@@ -400,8 +401,11 @@ document.addEventListener("click",async function(e){
   else if(geoMode()&&S.gm.radius&&S.loc.km>S.gm.radius){S.err="Hum "+S.gm.radius+" km tak hi deliver karte hain."}
   else if(blockedLoc()){S.err=areaRule().msg||"Delivery unavailable at this address"}
   else if(!geoMode()&&!S.zone){S.err="Select a delivery zone first."}
+  else if(S.gst&&!/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(S.gst)){S.err="This GST number does not look correct. It has 15 letters and numbers, for example 27ABCDE1234F1Z5."}
   else{
    S.busy=true;render();
+   var sg=await sb.rpc("save_gstin",{p_gstin:S.gst,p_firm:S.firm});
+   if(sg.error){S.busy=false;S.err=sg.error.message;render();return}
    var items=Object.keys(S.cart).map(function(k){return{variant_id:+k,qty:S.cart[k]}});
    var args=geoMode()?{p_zone:null,p_pay:payM(),p_address:S.addr,p_items:items,p_area:S.area||"",p_lat:S.loc.lat,p_lng:S.loc.lng,p_road_km:S.loc.km}:{p_zone:+S.zone,p_pay:payM(),p_address:S.addr,p_items:items};
    var r3=await sb.rpc("place_order",args);
@@ -419,6 +423,8 @@ document.addEventListener("input",function(e){
  else if(i==="phone")S.phone=e.target.value.replace(/\D/g,"");
  else if(i==="otp")S.otp=e.target.value.replace(/\D/g,"");
  else if(i==="addr")S.addr=e.target.value
+ else if(i==="gst"){S.gst=e.target.value.toUpperCase().replace(/\s/g,"");S.gstTouched=true}
+ else if(i==="firm"){S.firm=e.target.value;S.gstTouched=true}
  else if(i==="area"){S.area=e.target.value;S.areaEdited=true}});
 document.addEventListener("change",function(e){if(e.target.id==="zone")S.zone=e.target.value});
 sb.auth.onAuthStateChange(function(ev,s){S.user=s?s.user:null});
