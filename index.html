@@ -80,11 +80,35 @@ nav button.on{color:var(--ink);box-shadow:inset 0 3px 0 var(--acc)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .ctile .cb{background:linear-gradient(160deg,#27333a,#3a3420)}:root:not([data-theme="light"]) .ctile svg{color:var(--acc)}}
 :root[data-theme="dark"] .ctile .cb{background:linear-gradient(160deg,#27333a,#3a3420)}:root[data-theme="dark"] .ctile svg{color:var(--acc)}
 .vrow .i>b{display:block}.vrow .i>small{display:block}.vrow .i>br{display:none}
+
+#spl{position:fixed;inset:0;z-index:2000;background:#14191c;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s,visibility .45s}
+#spl.out{opacity:0;visibility:hidden}
+#spl svg{width:150px;height:auto;overflow:visible}
+#spl .b{fill:#F2B705;opacity:0;transform:translateY(-14px);animation:bd .38s ease-out forwards}
+#spl .b.d{fill:#d9a204}
+@keyframes bd{to{opacity:1;transform:none}}
+#spl h1{margin:18px 0 4px;font-size:34px;color:#eceae4;letter-spacing:.5px;opacity:0;animation:fu .6s .95s forwards}
+#spl h1 span{color:#F2B705}
+#spl .tg{display:flex;align-items:center;gap:10px;margin:2px 0 10px;opacity:0;animation:fu .6s 1.1s forwards}
+#spl .tg i{display:block;width:26px;height:2px;background:linear-gradient(90deg,transparent,#F2B705)}
+#spl .tg i:last-child{background:linear-gradient(270deg,transparent,#F2B705)}
+#spl .tg b{font-size:11.5px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;color:#F2B705;white-space:nowrap}
+@media(max-width:360px){#spl .tg b{font-size:10px;letter-spacing:1.5px}#spl .tg i{width:14px}}
+#spl p{margin:0;color:#93a0a8;font-size:14px;opacity:0;animation:fu .6s 1.35s forwards}
+#spl .bar{margin-top:26px;width:120px;height:3px;border-radius:3px;background:#323d44;overflow:hidden}
+#spl .bar i{display:block;height:100%;width:0;background:#F2B705;animation:ld 1.9s ease-out forwards}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes ld{to{width:100%}}
+@media(prefers-reduced-motion:reduce){#spl *{animation-duration:.01s!important;animation-delay:0s!important}}
 </style></head>
 <body>
+<div id="spl"><svg viewBox="0 0 144 86" aria-hidden="true"><rect class="b" x="0" y="66" width="34" height="18" rx="2" style="animation-delay:0.00s"/><rect class="b d" x="36" y="66" width="34" height="18" rx="2" style="animation-delay:0.06s"/><rect class="b" x="72" y="66" width="34" height="18" rx="2" style="animation-delay:0.11s"/><rect class="b d" x="108" y="66" width="34" height="18" rx="2" style="animation-delay:0.17s"/><rect class="b d" x="18" y="46" width="34" height="18" rx="2" style="animation-delay:0.22s"/><rect class="b" x="54" y="46" width="34" height="18" rx="2" style="animation-delay:0.28s"/><rect class="b d" x="90" y="46" width="34" height="18" rx="2" style="animation-delay:0.33s"/><rect class="b" x="0" y="26" width="34" height="18" rx="2" style="animation-delay:0.39s"/><rect class="b d" x="36" y="26" width="34" height="18" rx="2" style="animation-delay:0.44s"/><rect class="b" x="72" y="26" width="34" height="18" rx="2" style="animation-delay:0.49s"/><rect class="b d" x="108" y="26" width="34" height="18" rx="2" style="animation-delay:0.55s"/><rect class="b d" x="18" y="6" width="34" height="18" rx="2" style="animation-delay:0.61s"/><rect class="b" x="54" y="6" width="34" height="18" rx="2" style="animation-delay:0.66s"/><rect class="b d" x="90" y="6" width="34" height="18" rx="2" style="animation-delay:0.72s"/></svg><h1>Nuvi<span>con</span></h1><div class="tg"><i></i><b>New Innovation In Construction</b><i></i></div><p>Construction materials, delivered to your site.</p><div class="bar"><i></i></div></div>
 <div class="tape"></div>
 <main id="app"></main>
 <nav id="nav"></nav>
+<script>(function(){var e=document.getElementById("spl");if(!e)return;var seen=0;try{seen=sessionStorage.getItem("spl")}catch(x){}
+if(seen){e.remove();return}try{sessionStorage.setItem("spl","1")}catch(x){}
+setTimeout(function(){e.className="out";setTimeout(function(){e.remove()},500)},2000)})();</script>
 <script>var DLG=null;
 function dlgOpen(msg,mode,def){return new Promise(function(res){
  if(DLG){DLG.remove();DLG=null}
