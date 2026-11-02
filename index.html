@@ -130,7 +130,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0,smf:1000,skm:15},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
@@ -156,9 +156,12 @@ function awt(l){var w=l.variants;return w&&w.fee_basis==='weight'&&Number(w.weig
 function cartKg(){var t=0;for(var k in S.cart){var x=S.V[k];if(x&&x.v.fee_basis==='weight'&&Number(x.v.weight_kg)>0)t+=S.cart[k]*Number(x.v.weight_kg)}return Math.round(t)}
 function delInfo(){
  if(!geoMode()||!S.loc||S.loc.km==null||!Object.keys(S.cart).length)return null;
- var f=S.fee,ld=0;
- for(var k in S.cart){var x=S.V[k];if(!x)continue;var q=S.cart[k];ld+=x.v.fee_basis==="weight"?q*(Number(x.v.weight_kg)||0)/100*f.qtl:q*f.bag}
- var fee=Math.max(f.min,Math.round(ld+Math.max(0,S.loc.km-f.free)*f.km))+areaRule().extra;
+ var f=S.fee,ld=0,big=false,bill=0;
+ for(var k in S.cart){var x=S.V[k];if(!x)continue;var q=S.cart[k],b=x.v.fee_basis;bill+=up(x.v,q)*q*(1+x.p.gst_percent/100);if(b==="small")continue;big=true;
+  ld+=x.v.transport_fee!=null?q*Number(x.v.transport_fee):(b==="weight"?q*(Number(x.v.weight_kg)||0)/100*f.qtl:q*f.bag)}
+ var ex=areaRule().extra,fee;
+ if(big)fee=Math.max(f.min,Math.round(ld+Math.max(0,S.loc.km-f.free)*f.km))+ex;
+ else{var dk=Math.round(Math.max(0,S.loc.km-f.free)*f.skm);fee=(Math.round(bill*100)/100>=f.smf?dk:f.min+dk)+ex}
  return {fee:fee,gst:Math.round(fee*f.gst)/100}}
 function sums(){var s=0,g=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var l=up(x.v,S.cart[k])*S.cart[k];s+=l;g+=l*x.p.gst_percent/100}
  var d=delInfo(),df=d?d.fee:0,dg=d?d.gst:0;return{s:s,g:g,d:df,dg:dg,hasD:!!d,t:s+g+df+dg}}
@@ -172,10 +175,10 @@ function stx(a){return a<1?["Out of stock","st-out"]:a<=5?["Only "+a+" left","st
 async function load(){
  try{
   var a=await Promise.all([
-   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,price_per_kg,bulk_prices(min_qty,price),inventory(total,reserved))").eq("active",true).order("id"),
+   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,transport_fee,price_per_kg,bulk_prices(min_qty,price),inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
-   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent"])]);
+   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent","small_free_min","small_fee_per_km"])]);
   for(var i=0;i<a.length;i++)if(a[i].error)throw a[i].error;
   S.prods=a[0].data;S.V={};
   S.prods.forEach(function(p){
@@ -183,7 +186,7 @@ async function load(){
     var inv=Array.isArray(v.inventory)?v.inventory[0]:v.inventory;
     v.avail=inv?inv.total-inv.reserved:0;S.V[v.id]={p:p,v:v}})});
   S.zones=a[1].data;S.hours={};a[2].data.forEach(function(h){S.hours[h.day]=h});
-  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="pay_gateway")S.gw=String(x.value)==="cashfree"?"cashfree":"razorpay";if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
+  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="pay_gateway")S.gw=String(x.value)==="cashfree"?"cashfree":"razorpay";if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="small_free_min")S.fee.smf=Number(x.value);if(x.key==="small_fee_per_km")S.fee.skm=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
   S.loaded=true;S.loadErr="";
   try{var gc=await sb.from("geo_cells").select("*");S.cells={};(gc.data||[]).forEach(function(c){S.cells[c.geohash]=c})}catch(e2){}
  }catch(e){S.loadErr=(e&&e.message)||String(e)}
