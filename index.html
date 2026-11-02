@@ -130,7 +130,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0,smf:1000,skm:15},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
+var S={wa:"",gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0,smf:1000,skm:15},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
@@ -158,7 +158,7 @@ function delInfo(){
  if(!geoMode()||!S.loc||S.loc.km==null||!Object.keys(S.cart).length)return null;
  var f=S.fee,ld=0,big=false,bill=0;
  for(var k in S.cart){var x=S.V[k];if(!x)continue;var q=S.cart[k],b=x.v.fee_basis;bill+=up(x.v,q)*q*(1+x.p.gst_percent/100);if(b==="small")continue;big=true;
-  ld+=x.v.transport_fee!=null?q*Number(x.v.transport_fee):(b==="weight"?q*(Number(x.v.weight_kg)||0)/100*f.qtl:q*f.bag)}
+  ld+=x.v.transport_fee!=null?(x.v.cust_fee_after!=null&&x.v.cust_after_qty!=null?Math.min(q,x.v.cust_after_qty)*Number(x.v.transport_fee)+Math.max(q-x.v.cust_after_qty,0)*Number(x.v.cust_fee_after):q*Number(x.v.transport_fee)):(b==="weight"?q*(Number(x.v.weight_kg)||0)/100*f.qtl:q*f.bag)}
  var ex=areaRule().extra,fee;
  if(big)fee=Math.max(f.min,Math.round(ld+Math.max(0,S.loc.km-f.free)*f.km))+ex;
  else{var dk=Math.round(Math.max(0,S.loc.km-f.free)*f.skm);fee=(Math.round(bill*100)/100>=f.smf?dk:f.min+dk)+ex}
@@ -175,10 +175,10 @@ function stx(a){return a<1?["Out of stock","st-out"]:a<=5?["Only "+a+" left","st
 async function load(){
  try{
   var a=await Promise.all([
-   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,transport_fee,price_per_kg,bulk_prices(min_qty,price),inventory(total,reserved))").eq("active",true).order("id"),
+   sb.from("products").select("id,brand,name,category,gst_percent,variants(id,label,price,active,fee_basis,weight_kg,transport_fee,cust_fee_after,cust_after_qty,price_per_kg,bulk_prices(min_qty,price),inventory(total,reserved))").eq("active",true).order("id"),
    sb.from("zones").select("id,name").eq("active",true).order("id"),
    sb.from("store_hours").select("*"),
-   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent","small_free_min","small_fee_per_km"])]);
+   sb.from("settings").select("*").in("key",["force_closed","city","gmaps_key","godown","max_radius_km","online_pay","rzp_key_id","pay_gateway","fee_per_bag","fee_per_quintal","fee_per_km","fee_min","fee_free_km","delivery_gst_percent","small_free_min","small_fee_per_km","whatsapp_number"])]);
   for(var i=0;i<a.length;i++)if(a[i].error)throw a[i].error;
   S.prods=a[0].data;S.V={};
   S.prods.forEach(function(p){
@@ -186,7 +186,7 @@ async function load(){
     var inv=Array.isArray(v.inventory)?v.inventory[0]:v.inventory;
     v.avail=inv?inv.total-inv.reserved:0;S.V[v.id]={p:p,v:v}})});
   S.zones=a[1].data;S.hours={};a[2].data.forEach(function(h){S.hours[h.day]=h});
-  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="pay_gateway")S.gw=String(x.value)==="cashfree"?"cashfree":"razorpay";if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="small_free_min")S.fee.smf=Number(x.value);if(x.key==="small_fee_per_km")S.fee.skm=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
+  a[3].data.forEach(function(x){if(x.key==="force_closed")S.force=(x.value===true);if(x.key==="city"&&x.value)S.city=String(x.value);if(x.key==="pay_gateway")S.gw=String(x.value)==="cashfree"?"cashfree":"razorpay";if(x.key==="fee_per_bag")S.fee.bag=Number(x.value);if(x.key==="fee_per_quintal")S.fee.qtl=Number(x.value);if(x.key==="fee_per_km")S.fee.km=Number(x.value);if(x.key==="fee_min")S.fee.min=Number(x.value);if(x.key==="fee_free_km")S.fee.free=Number(x.value);if(x.key==="delivery_gst_percent")S.fee.gst=Number(x.value);if(x.key==="small_free_min")S.fee.smf=Number(x.value);if(x.key==="whatsapp_number")S.wa=x.value?String(x.value).replace(/\D/g,""):"";if(x.key==="small_fee_per_km")S.fee.skm=Number(x.value);if(x.key==="gmaps_key"&&x.value)S.gm.key=String(x.value);if(x.key==="godown"&&x.value&&x.value.lat!=null)S.gm.godown={lat:+x.value.lat,lng:+x.value.lng};if(x.key==="max_radius_km")S.gm.radius=Number(x.value)||0;if(x.key==="online_pay")S.onl=(x.value===true||x.value==="true");if(x.key==="rzp_key_id")S.rzk=x.value?String(x.value):""});
   S.loaded=true;S.loadErr="";
   try{var gc=await sb.from("geo_cells").select("*");S.cells={};(gc.data||[]).forEach(function(c){S.cells[c.geohash]=c})}catch(e2){}
  }catch(e){S.loadErr=(e&&e.message)||String(e)}
@@ -274,7 +274,12 @@ function home(){
  '<div class="trust"><div>'+TR[0]+'Site delivery</div><div>'+TR[1]+'GST in every price</div><div>'+TR[2]+'Pay online or on delivery</div></div>'+
  '<input type="search" id="q" placeholder="Search cement, rebar, putty…" value="'+esc(S.q)+'">'+
  '<div class="cgrid">'+["all"].concat(cats).map(function(c){return '<button class="ctile'+(c===S.cat?' on':'')+'" data-a="cat" data-id="'+esc(c)+'"><span class="cb">'+(c==="all"?IC.box:ico(c))+'</span>'+(c==="all"?'All materials':esc(cap(c)))+'</button>'}).join("")+'</div>'+
- '<div id="list">'+list()+'</div>'}
+ '<div id="list">'+list()+'</div>'+extras()}
+function extras(){
+ var h='<div class="card" style="margin-top:14px;text-align:center"><b>Can\'t find what you need?</b><br><small>Tell us the product, brand or size and we will try to add it.</small><br><button class="btn ghost" style="margin-top:8px" data-a="suggest">Suggest a product</button></div>';
+ if(S.wa){var m=encodeURIComponent("Hello Nuvicon, I am sending my materials list (photo).");
+  h+='<div style="margin-top:14px;border-radius:14px;padding:16px;background:#1f4d3a;color:#eef5f0"><b style="font-size:17px">Stuck with a \u2018parcha\u2019?</b><div style="margin:6px 0 12px;font-size:14px;opacity:.9">If you have a handwritten materials list, just send it on WhatsApp. We\'ll figure it out and deliver while you relax.</div><a href="https://wa.me/'+S.wa+'?text='+m+'" target="_blank" rel="noopener" style="display:block;text-align:center;background:#5fd06f;color:#10301f;font-weight:700;border-radius:10px;padding:12px;text-decoration:none">Send your image on WhatsApp</a></div>'}
+ return h}
 function cartV(){
  var ids=Object.keys(S.cart).filter(function(k){return S.V[k]});
  if(!ids.length)return '<div class="empty emp">'+emptySvg("cart")+'<p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
@@ -410,6 +415,12 @@ document.addEventListener("click",async function(e){
  else if(a==="mapok"){closeMap();setLoc(MP.pos.lat,MP.pos.lng);return}
  else if(a==="retry"){S.loadErr="";render();return load()}
  else if(a==="changephone"){S.step="phone";S.otp=""}
+ else if(a==="suggest"){
+  if(!S.user){S.next="home";S.view="login";render();return}
+  var sn=await ask("Product name (brand, size or quantity if you know it)");if(sn===null||!String(sn).trim())return;
+  var sd=await ask("Anything else? (optional)","");if(sd===null)return;
+  var sr=await sb.rpc("suggest_product",{p_name:String(sn).trim(),p_details:String(sd||"").trim()||null});
+  showAlert(sr.error?sr.error.message:"Thank you! We have received your request.")}
  else if(a==="logout"){await sb.auth.signOut();S.user=null;S.cr=null;S.orders=[];S.view="home"}
  else if(a==="sendotp"){
   if(!/^[6-9][0-9]{9}$/.test(S.phone)){S.err="Enter a valid 10-digit mobile number."}
