@@ -375,13 +375,31 @@ function loginV(){
 function stmtText(d){
  var L=(d.lines||[]).map(function(x){var sg=(x.type==="bill"||x.type==="intchg")?"":"- ";return x.d+"  "+x.text+"  "+sg+"₹"+Number(x.amt).toLocaleString("en-IN")});
  return (L.length?L.join("\n"):"No entries yet")+"\n\nBills still to pay: ₹"+Number(d.bills_due).toLocaleString("en-IN")+"\nLate interest to pay: ₹"+Number(d.interest_due).toLocaleString("en-IN")+"\nDeposit interest earned (credited yearly): ₹"+Number(d.sd_interest_pending).toLocaleString("en-IN")+"\n\nRates: 1.3% per month on a bill unpaid after 30 days (per day, unpaid part only). 6% per year on your security deposit."}
+
+function invDoc(v){
+ var m2=function(n){return Number(n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2})},se=v.seller||{},by=v.buyer||{},ig=v.igst,tt=0;
+ var rows=(v.lines||[]).map(function(l){var tx=Number(l.tax),sum=Number(l.taxable)+tx;
+  return '<tr><td>'+esc(l.name)+' ('+esc(l.label)+')'+(l.hsn?'<br><small>HSN '+esc(l.hsn)+'</small>':'')+'</td><td style="text-align:right">'+esc(l.qty)+'</td><td style="text-align:right">'+m2(l.rate)+'</td><td style="text-align:right">'+m2(l.taxable)+'</td><td style="text-align:right">'+Number(l.gst)+'%</td><td style="text-align:right">'+m2(tx)+'</td><td style="text-align:right">'+m2(sum)+'</td></tr>'}).join("");
+ var d=v.delivery||{};
+ if(Number(d.taxable)>0)rows+='<tr><td>Delivery charges<br><small>SAC 996511</small></td><td style="text-align:right">1</td><td style="text-align:right">'+m2(d.taxable)+'</td><td style="text-align:right">'+m2(d.taxable)+'</td><td style="text-align:right">'+Number(d.gst)+'%</td><td style="text-align:right">'+m2(d.tax)+'</td><td style="text-align:right">'+m2(Number(d.taxable)+Number(d.tax))+'</td></tr>';
+ var tax=Number(v.tax_total),split=ig?'IGST '+m2(tax):'CGST '+m2(tax/2)+', SGST '+m2(tax/2);
+ return '<div style="max-width:720px;margin:0 auto;font-size:13px;line-height:1.4;color:#111"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:20px">'+esc(se.name||"Nuvicon")+'</b>'+(se.proprietor?'<br>Prop. '+esc(se.proprietor):'')+(se.address?'<br>'+esc(se.address):'')+(se.phone?'<br>Phone '+esc(se.phone):'')+(se.gstin?'<br><b>GSTIN '+esc(se.gstin)+'</b>':'')+'</div><div style="text-align:right"><b style="font-size:17px">'+esc(v.title)+'</b><br>No. '+esc(v.invoice_no)+'<br>Date '+esc(v.date)+'<br><small>Order '+esc(v.order_no)+'</small></div></div>'+
+ '<div style="margin:12px 0;padding:8px;border:1px solid #ccc;border-radius:6px"><b>Bill to</b><br>'+esc(by.name)+(by.person&&by.person!==by.name?' ('+esc(by.person)+')':'')+(by.phone?'<br>Phone '+esc(by.phone):'')+(by.gstin?'<br>GSTIN '+esc(by.gstin):'')+(by.address?'<br>Deliver to: '+esc(by.address):'')+'</div>'+
+ '<table style="width:100%;border-collapse:collapse" border="1" cellpadding="5"><thead><tr style="background:#f2f2f2"><th style="text-align:left">Item</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>GST</th><th>Tax</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+ '<div style="text-align:right;margin-top:8px">Taxable value '+m2(Number(v.subtotal)+Number(d.taxable||0))+'<br>'+split+(Number(v.round_off)?'<br>Round off '+m2(v.round_off):'')+'<br><b style="font-size:16px">Total ₹'+m2(v.total)+'</b></div>'+
+ '<div style="margin-top:10px"><small>Payment: '+esc(v.pay_method==="on_delivery"?"On delivery":v.pay_method==="credit"?"Credit":"Online")+', '+esc(v.pay_status)+'.'+(se.gstin?'':' This is a bill/estimate, not a GST tax invoice.')+' This is a computer generated document.</small></div></div>'}
+function showInv(v){
+ var o=document.getElementById("invov");if(o)o.remove();
+ var d=document.createElement("div");d.id="invov";d.style.cssText="position:fixed;inset:0;z-index:1500;background:#fff;overflow:auto;padding:16px;color:#111";
+ d.innerHTML='<style>@media print{body>*:not(#invov){display:none!important}#invov{position:static!important;overflow:visible!important}.noprint{display:none!important}}</style><div class="noprint" style="display:flex;gap:8px;margin:0 auto 12px;max-width:720px"><button class="btn" id="invp">Print / Save PDF</button><button class="btn ghost" id="invc">Close</button></div>'+invDoc(v);
+ document.body.appendChild(d);document.getElementById("invc").onclick=function(){d.remove()};document.getElementById("invp").onclick=function(){window.print()}}
 function ordersV(){
  var h='<div class="hero"><h1>Orders</h1></div>'+pushHtml()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+(S.cr?'<div class="row" style="display:block"><b>Credit account</b><br><small>Limit '+fmt(S.cr.limit)+', outstanding '+fmt(S.cr.used)+', available '+fmt(S.cr.available)+'</small>'+(Number(S.cr.interest_due)>0?'<br><small style="color:#b3392f;font-weight:700">Late interest to pay: '+fmt(S.cr.interest_due)+'</small>':'')+(Number(S.cr.sd_interest_pending)>0?'<br><small style="color:#1f7a4d">Deposit interest earned so far: '+fmt(S.cr.sd_interest_pending)+' (credited every year)</small>':'')+'<br><small>Pay credit bills within 30 days. After that 1.3% per month is charged on the unpaid part. Your payments first clear the late interest, then the bills. Your deposit earns 6% per year.</small><br><a data-a="cstmt" style="text-decoration:underline;font-weight:700;cursor:pointer">View statement</a></div>':'');
  if(!S.orders.length)h+='<div class="empty emp">'+emptySvg("orders")+'<p>No orders yet.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  h+=S.orders.map(function(o){var i=STS.indexOf(o.status);
   return '<div class="row" style="display:block"><div style="display:flex;justify-content:space-between"><b>Order #'+esc(o.order_no)+'</b><b>'+fmt(o.total)+'</b></div>'+
   '<small>'+new Date(o.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})+', '+esc((o.zones&&o.zones.name)||o.area_text||"")+', payment '+(o.pay_method==="online"?'online, ':o.pay_method==="credit"?'credit, ':'cash on delivery, ')+esc(o.pay_status)+'</small><br><small>'+o.order_items.map(function(l){return l.qty+' × '+esc(l.product_name)+' ('+esc(l.variant_label)+')'+awt(l)}).join(", ")+'</small>'+
-  (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+''+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
+  (o.status==="placed"&&o.pay_method==="online"&&o.pay_status==="pending"?'<div style="margin-top:8px;display:flex;gap:8px"><button class="btn" data-a="paynow" data-id="'+o.id+'"'+(S.busy?' disabled':'')+'>Pay now</button><button class="btn ghost" data-a="cxl" data-id="'+o.id+'">Cancel</button></div>':'')+''+(o.status==="delivered"?'<div style="margin-top:8px"><button class="btn ghost" data-a="inv" data-id="'+o.id+'">Invoice</button></div>':'')+(o.status==="cancelled"?'<div class="err">Cancelled</div>':'<div class="track">'+LBL.map(function(s,j){return '<div class="'+(j<=i?'d':'')+'">'+s+'</div>'}).join("")+'</div>')+'</div>'}).join("");
  return h+'<button class="btn ghost" style="margin-top:10px" data-a="logout">Log out</button>'}
 function nav(){
  var t=[["home","Home"],["cart","Cart"+(cnt()?" ("+cnt()+")":"")],["orders","Orders"]];
@@ -415,6 +433,7 @@ document.addEventListener("click",async function(e){
  else if(a==="mapok"){closeMap();setLoc(MP.pos.lat,MP.pos.lng);return}
  else if(a==="retry"){S.loadErr="";render();return load()}
  else if(a==="changephone"){S.step="phone";S.otp=""}
+ else if(a==="inv"){var ir=await sb.rpc("get_invoice",{p_order:+id});if(ir.error)showAlert(ir.error.message);else showInv(ir.data)}
  else if(a==="suggest"){
   if(!S.user){S.next="home";S.view="login";render();return}
   var sn=await ask("Product name (brand, size or quantity if you know it)");if(sn===null||!String(sn).trim())return;
