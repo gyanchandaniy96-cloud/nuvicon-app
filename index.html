@@ -130,7 +130,7 @@ var U="https://ptbaxvqvwhgowflxzqmh.supabase.co",K="sb_publishable_QeRuu6oa6UKMu
 var sb;
 try{sb=window.supabase.createClient(U,K)}catch(e){sb=window.supabase.createClient(U,K,{auth:{persistSession:false,autoRefreshToken:false}})}
 var STS=["placed","staged","picked_up","in_transit","delivered"],LBL=["Placed","Staged","Picked up","In transit","Delivered"];
-var S={wa:"",gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0,smf:1000,skm:15},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:"",sites:[],site:"",newSite:"",siteOpen:null};
+var S={wa:"",gst:"",firm:"",cells:{},gw:"razorpay",fee:{bag:12,qtl:60,km:35,min:100,free:5,gst:0,smf:1000,skm:15},cr:null,onl:false,rzk:"",pay:"cod",prods:[],V:{},zones:[],hours:{},force:false,city:"",gm:{key:"",godown:null,radius:0},loc:null,area:"",areaEdited:false,locBusy:false,cart:{},orders:[],user:null,view:"home",q:"",cat:"all",zone:"",addr:"",phone:"",otp:"",step:"phone",err:"",busy:false,loaded:false,next:"cart",loadErr:"",sites:[],site:"",newSite:"",siteOpen:null,cpn:null,cpnCode:"",cpnErr:""};
 function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
 function fmt(n){n=Math.round(Number(n)*100)/100;return "₹"+n.toLocaleString("en-IN",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2})}
 function incl(v,g){return Number(v)*(1+Number(g)/100)}
@@ -164,7 +164,21 @@ function delInfo(){
  else{var dk=Math.round(Math.max(0,S.loc.km-f.free)*f.skm);fee=(Math.round(bill*100)/100>=f.smf?dk:f.min+dk)+ex}
  return {fee:fee,gst:Math.round(fee*f.gst)/100}}
 function sums(){var s=0,g=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var l=up(x.v,S.cart[k])*S.cart[k];s+=l;g+=l*x.p.gst_percent/100}
- var d=delInfo(),df=d?d.fee:0,dg=d?d.gst:0;var raw=Math.round((s+Math.round(g*100)/100+df+dg)*100)/100,tr=Math.round(raw);return{s:s,g:g,d:df,dg:dg,hasD:!!d,t:tr,ro:Math.round((tr-raw)*100)/100}}
+ var d=delInfo(),df=d?d.fee:0,dg=d?d.gst:0;var gb=Math.round(g*100)/100,bill=Math.round((s+gb)*100)/100,cd=cpnDisc(bill),g2=bill>0?g*(1-cd/bill):g,raw=Math.round((bill-cd+df+dg)*100)/100,tr=Math.round(raw);return{s:s,g:g2,d:df,dg:dg,hasD:!!d,t:tr,cd:cd,bill:bill,ro:Math.round((tr-raw)*100)/100}}
+function cpnDisc(bill){var c=S.cpn;if(!c||bill<Number(c.min_order||0))return 0;var d=c.kind==="percent"?bill*Number(c.value)/100:Number(c.value);if(c.kind==="percent"&&c.max_discount!=null)d=Math.min(d,Number(c.max_discount));return Math.round(Math.max(0,Math.min(d,bill))*100)/100}
+function cpnBlock(){
+ if(S.cpn){var off=sums().cd===0;
+  return '<div class="row" style="display:block;background:'+(off?'#fff4dc':'#e6f4ec')+'"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><div><b style="color:#1f7a4d">'+esc(S.cpn.code)+(off?'':' lagaya gaya')+'</b><br><small>'+(off?'Minimum order '+fmt(S.cpn.min_order)+' hona chahiye':esc(S.cpn.description||"Coupon applied"))+'</small></div><button class="btn ghost sm" data-a="cpnrem">Hatao</button></div></div>'}
+ return '<div class="row" style="display:block"><b>Coupon code</b><div style="display:flex;gap:8px;margin-top:8px"><input class="sel" id="cpnIn" maxlength="20" autocapitalize="characters" placeholder="Coupon code daalo" value="'+esc(S.cpnCode)+'" style="margin:0;flex:1"><button class="btn" data-a="cpnapply">Apply</button></div>'+(S.cpnErr?'<div class="err" style="margin-top:8px">'+esc(S.cpnErr)+'</div>':'')+'</div>'}
+function bulkSave(){var t=0;for(var k in S.cart){var x=S.V[k];if(!x)continue;var d=Number(x.v.price)-up(x.v,S.cart[k]);if(d>0)t+=d*S.cart[k]*(1+x.p.gst_percent/100)}return Math.round(t*100)/100}
+function showCpn(){
+ var rows='',tot=0;
+ for(var k in S.cart){var x=S.V[k];if(!x)continue;var q=S.cart[k],pu=up(x.v,q),d=(Number(x.v.price)-pu)*q*(1+x.p.gst_percent/100);if(d>0){tot+=d;rows+='<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0"><span>Bulk price: '+fmt(incl(pu,x.p.gst_percent))+' per unit<br><small style="color:var(--mut)">'+esc(x.p.brand+" "+x.p.name+" "+x.v.label)+'</small></span><b style="color:#1f7a4d;white-space:nowrap">−'+fmt(d)+'</b></div>'}}
+ var cdv=sums().cd;if(cdv>0){tot+=cdv;rows+='<div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0"><span>Coupon '+esc(S.cpn.code)+'<br><small style="color:var(--mut)">'+esc(S.cpn.description||'')+'</small></span><b style="color:#1f7a4d;white-space:nowrap">−'+fmt(cdv)+'</b></div>'}
+ var o=document.getElementById("cpnov");if(o)o.remove();
+ o=document.createElement("div");o.id="cpnov";o.setAttribute("data-a","cpnx");o.style.cssText="position:fixed;inset:0;z-index:1600;background:rgba(0,0,0,.5);display:flex;align-items:flex-end";
+ o.innerHTML='<div style="background:var(--card);color:var(--ink);width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:20px 20px 28px" data-a="cpnkeep"><div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:22px">Coupon Discount</b><button class="btn ghost" data-a="cpnx" aria-label="Close" style="border-radius:50%;padding:6px 12px">&times;</button></div>'+rows+'<div style="display:flex;justify-content:space-between;padding-top:12px;border-top:1px solid var(--line)"><span>Total Coupon Discount</span><b style="color:#1f7a4d">−'+fmt(tot)+'</b></div></div>';
+ document.body.appendChild(o)}
 function isOpen(){
  if(S.force)return false;
  var d=new Date(new Date().toLocaleString("en-US",{timeZone:"Asia/Kolkata"}));
@@ -286,9 +300,9 @@ function cartV(){
  if(!ids.length)return '<div class="empty emp">'+emptySvg("cart")+'<p>Your cart is empty.</p><button class="btn" data-a="go" data-id="home">Browse materials</button></div>';
  var m=sums(),o=isOpen();
  return '<div class="hero"><h1>Cart</h1></div>'+ids.map(function(k){var x=S.V[k];
-  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+(isW(x.v)?pk(x.v,up(x.v,S.cart[k]),x.p.gst_percent)+' × '+S.cart[k]+' pcs (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent))+' × '+S.cart[k])+' = '+fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent)*S.cart[k])+(up(x.v,S.cart[k])<Number(x.v.price)?' <b style="color:#1f7a4d">(bulk price)</b>':'')+(function(){var nt=nextTier(x.v,S.cart[k]);return nt?'<br><span style="color:#1f7a4d;font-weight:700">Add '+(nt.min_qty-S.cart[k])+' more to get '+(isW(x.v)?pk(x.v,nt.price,x.p.gst_percent):fmt(incl(nt.price,x.p.gst_percent))+' each')+'</span>':''})()+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
- '<div class="row" style="display:block">'+(cartKg()>0?'<div style="display:flex;justify-content:space-between"><span>Steel weight</span><span>approx. '+cartKg()+' kg</span></div>':'')+'<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>'+fmt(m.s)+'</span></div><div style="display:flex;justify-content:space-between"><span>GST</span><span>'+fmt(m.g)+'</span></div>'+(m.hasD&&blockedLoc()?'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span style="color:#8a1f17;font-weight:800">Not available</span></div>':m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery'+(m.dg>0?' (incl. GST)':'')+'</span><span>'+fmt(m.d+m.dg)+'</span></div>':'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+(m.ro?'<div style="display:flex;justify-content:space-between"><span>Round off</span><span>'+(m.ro>0?'+':'−')+fmt(Math.abs(m.ro))+'</span></div>':'')+'</div>'+
- '<div class="sum"><span>Total</span><span>'+fmt(m.t)+'</span></div>'+siteBlock()+
+  return '<div class="row"><div class="i"><b>'+esc(x.p.brand+" "+x.p.name)+'</b><small>'+esc(x.v.label)+', '+(isW(x.v)?pk(x.v,up(x.v,S.cart[k]),x.p.gst_percent)+' × '+S.cart[k]+' pcs (approx. '+Math.round(S.cart[k]*Number(x.v.weight_kg))+' kg)':fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent))+' × '+S.cart[k])+' = '+fmt(incl(up(x.v,S.cart[k]),x.p.gst_percent)*S.cart[k])+(up(x.v,S.cart[k])<Number(x.v.price)?'<br><span style="color:#1f7a4d;font-weight:700">Saved '+fmt(incl(Number(x.v.price)-up(x.v,S.cart[k]),x.p.gst_percent)*S.cart[k])+' using Bulk Prices</span>':'')+(function(){var nt=nextTier(x.v,S.cart[k]);return nt?'<br><span style="color:#1f7a4d;font-weight:700">Add '+(nt.min_qty-S.cart[k])+' more to get '+(isW(x.v)?pk(x.v,nt.price,x.p.gst_percent):fmt(incl(nt.price,x.p.gst_percent))+' each')+'</span>':''})()+'</small></div>'+stepper(k,x.v.avail)+'</div>'}).join("")+
+ '<div class="row" style="display:block">'+(cartKg()>0?'<div style="display:flex;justify-content:space-between"><span>Steel weight</span><span>approx. '+cartKg()+' kg</span></div>':'')+'<div style="display:flex;justify-content:space-between"><span>Sub Total (Inclusive of GST)</span><span>'+fmt(m.bill+bulkSave())+'</span></div>'+(bulkSave()+m.cd>0?'<div style="display:flex;justify-content:space-between"><span data-a="cpn" style="border-bottom:1.5px dashed currentColor;cursor:pointer">Coupon Discount</span><span style="color:#1f7a4d;font-weight:800">−'+fmt(bulkSave()+m.cd)+'</span></div>':'')+(m.hasD&&blockedLoc()?'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span style="color:#8a1f17;font-weight:800">Not available</span></div>':m.hasD?'<div style="display:flex;justify-content:space-between"><span>Delivery Charge'+(m.dg>0?' (incl. GST)':'')+'</span>'+(m.d+m.dg>0?'<span>'+fmt(m.d+m.dg)+'</span>':'<span style="color:#1f7a4d;font-weight:800">FREE</span>')+'</div>':'<div style="display:flex;justify-content:space-between"><span>Delivery</span><span><small>added once you choose your location</small></span></div>')+(m.ro?'<div style="display:flex;justify-content:space-between"><span>Round off</span><span>'+(m.ro>0?'+':'−')+fmt(Math.abs(m.ro))+'</span></div>':'')+'</div>'+
+ '<div class="sum"><span>Total<br><small style="font-weight:400">Including GST'+(m.g>0?' '+fmt(m.g+m.dg):'')+'</small></span><span>'+fmt(m.t)+'</span></div>'+cpnBlock()+siteBlock()+
  (geoMode()?locBlock():'<select class="sel" id="zone" aria-label="Delivery zone"><option value="">Select delivery zone</option>'+S.zones.map(function(z){return '<option value="'+z.id+'"'+(String(z.id)===S.zone?' selected':'')+'>'+esc(z.name)+'</option>'}).join("")+'</select>')+
  '<textarea class="sel" id="addr" rows="2" placeholder="Delivery address (site name, landmark)">'+esc(S.addr)+'</textarea>'+'<div class="row" style="display:block"><b>GST bill (optional)</b><br><small>Add your GST number if you want the bill in your firm name.</small><input class="sel" id="gst" maxlength="15" autocapitalize="characters" placeholder="GST number (15 characters)" value="'+esc(S.gst)+'" style="margin-top:8px"><input class="sel" id="firm" placeholder="Firm / business name" value="'+esc(S.firm)+'"></div>'+
  payOpt()+(S.err?'<div class="err">'+esc(S.err)+'</div>':'')+
@@ -456,6 +470,16 @@ document.addEventListener("click",async function(e){
  if(a==="go"){
   if((id==="orders"||id==="sites")&&!S.user){S.next=id;S.view="login"}
   else{S.view=id;if(id!=="sites")S.siteOpen=null;if(id==="orders"||id==="cart"||id==="sites")loadOrders()}}
+ else if(a==="cpn"){showCpn();return}
+ else if(a==="cpnrem"){S.cpn=null;S.cpnCode="";S.cpnErr=""}
+ else if(a==="cpnapply"){
+  if(!S.user){S.next="cart";S.view="login";render();return}
+  var cc=String(S.cpnCode||"").trim().toUpperCase();if(!cc){S.cpnErr="Coupon code daalo";render();return}
+  var m0=sums(),bl=Math.round((m0.s+Math.round(m0.g*100)/100)*100)/100;
+  var cr0=await sb.rpc("coupon_check",{p_code:cc,p_bill:bl});
+  if(cr0.error){S.cpnErr=cr0.error.message;S.cpn=null}else{S.cpn=cr0.data;S.cpnErr="";S.cpnCode=""}}
+ else if(a==="cpnkeep"){return}
+ else if(a==="cpnx"){var co=document.getElementById("cpnov");if(co)co.remove();return}
  else if(a==="sitelogin"){S.next="sites";S.view="login"}
  else if(a==="siteopen"){S.siteOpen=id}
  else if(a==="siteback"){S.siteOpen=null}
@@ -517,6 +541,7 @@ document.addEventListener("click",async function(e){
    if(sg.error){S.busy=false;S.err=sg.error.message;render();return}
    var items=Object.keys(S.cart).map(function(k){return{variant_id:+k,qty:S.cart[k]}});
    var args=geoMode()?{p_zone:null,p_pay:payM(),p_address:S.addr,p_items:items,p_area:S.area||"",p_lat:S.loc.lat,p_lng:S.loc.lng,p_road_km:S.loc.km}:{p_zone:+S.zone,p_pay:payM(),p_address:S.addr,p_items:items};
+   if(S.cpn&&sums().cd>0)args.p_coupon=S.cpn.code;
    var r3=await sb.rpc("place_order",args);
    S.busy=false;
    if(r3.error){S.err=r3.error.message;load()}
@@ -524,7 +549,7 @@ document.addEventListener("click",async function(e){
     try{var sid=S.site?+S.site:null;
      if(!sid&&String(S.newSite).trim().length>=2){var cs=await sb.rpc("create_site",{p_name:String(S.newSite).trim(),p_address:S.addr||null,p_area:S.area||null,p_lat:geoMode()&&S.loc?S.loc.lat:null,p_lng:geoMode()&&S.loc?S.loc.lng:null});if(!cs.error)sid=cs.data}
      if(sid)await sb.rpc("attach_order_site",{p_order:r3.data,p_site:sid})}catch(e2){}
-    S.site="";S.newSite="";S.cart={};S.addr="";S.loc=null;S.area="";S.areaEdited=false;S.view="orders";S.err="";await loadOrders();load();if(onl){S.busy=true;render();await payOrder(r3.data);S.busy=false}}}}
+    S.site="";S.newSite="";S.cpn=null;S.cpnCode="";S.cpnErr="";S.cart={};S.addr="";S.loc=null;S.area="";S.areaEdited=false;S.view="orders";S.err="";await loadOrders();load();if(onl){S.busy=true;render();await payOrder(r3.data);S.busy=false}}}}
  else if(a==="payopt"){S.pay=id}
  else if(a==="cstmt"){var sr=await sb.rpc("credit_statement");S.err=sr.error?sr.error.message:"";if(!sr.error)await dlgOpen(stmtText(sr.data),"alert")}
  else if(a==="paynow"){S.err="";S.busy=true;render();await payOrder(+id);S.busy=false}
@@ -539,7 +564,8 @@ document.addEventListener("input",function(e){
  else if(i==="gst"){S.gst=e.target.value.toUpperCase().replace(/\s/g,"");S.gstTouched=true}
  else if(i==="firm"){S.firm=e.target.value;S.gstTouched=true}
  else if(i==="area"){S.area=e.target.value;S.areaEdited=true}
- else if(i==="siteNew")S.newSite=e.target.value});
+ else if(i==="siteNew")S.newSite=e.target.value
+ else if(i==="cpnIn")S.cpnCode=e.target.value.toUpperCase()});
 document.addEventListener("change",function(e){if(e.target.id==="zone")S.zone=e.target.value;else if(e.target.id==="siteSel")pickSite(e.target.value)});
 sb.auth.onAuthStateChange(function(ev,s){S.user=s?s.user:null});
 sb.auth.getSession().then(function(r){if(r.data&&r.data.session){S.user=r.data.session.user;loadOrders()}});
